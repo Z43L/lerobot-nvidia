@@ -3,9 +3,10 @@
 Flujo por paso de control:
   cámaras (top, wrist) + estado de articulaciones  ->  SmolVLA  ->  acción  ->  ctrl de MuJoCo
 
-Convenciones (según la model card del checkpoint):
-  - observation.state y action: 6 valores en escala normalizada de LeRobot
-    (articulaciones en [-100, 100], gripper en [0, 100]), no en radianes.
+Convenciones (igual que el brazo real, real/real_arm.py):
+  - observation.state y action: 6 valores; las 5 articulaciones en GRADOS (el valor por
+    defecto de LeRobot, con el que se entrenó el checkpoint) y el gripper en [0, 100].
+    La sim usa radianes internamente; aquí se convierte: deg = rad * 180 / pi.
   - cámaras: observation.images.camera1 = vista cenital ("top"),
              observation.images.camera2 = vista de muñeca ("wrist").
 
@@ -75,17 +76,23 @@ class VLARunner:
         return lo, hi
 
     def rad_to_norm(self, q: np.ndarray) -> np.ndarray:
+        """Radianes de la sim -> unidades del VLA/real: grados en las articulaciones, 0..100 en la pinza.
+        Grados = mismo convenio que LeRobot con use_degrees=True (0 = centro del rango calibrado).
+        La sim asume que su cero coincide con el centro calibrado del brazo real; confírmalo en el puesto."""
         lo, hi = self._limits()
+        out = np.degrees(q).astype(np.float64)
         frac = (q - lo) / (hi - lo)
-        out = frac * 200.0 - 100.0
-        out[GRIPPER_IDX] = frac[GRIPPER_IDX] * 100.0
+        out[GRIPPER_IDX] = np.clip(frac[GRIPPER_IDX], 0.0, 1.0) * 100.0
         return out
 
     def norm_to_rad(self, a: np.ndarray) -> np.ndarray:
+        """Inverso de rad_to_norm: grados -> radianes; pinza 0..100 -> rango de la pinza en sim."""
         lo, hi = self._limits()
-        frac = (a + 100.0) / 200.0
-        frac[GRIPPER_IDX] = a[GRIPPER_IDX] / 100.0
-        q = lo + np.clip(frac, 0.0, 1.0) * (hi - lo)
+        q = np.radians(np.asarray(a, dtype=np.float64)).copy()
+        frac = np.clip(np.asarray(a, dtype=np.float64)[GRIPPER_IDX] / 100.0, 0.0, 1.0)
+        q[GRIPPER_IDX] = lo[GRIPPER_IDX] + frac * (hi[GRIPPER_IDX] - lo[GRIPPER_IDX])
+        # límites de articulación de la sim, para no pasar del tope mecánico
+        q[:5] = np.clip(q[:5], lo[:5], hi[:5])
         return q
 
     def _render(self, camera: str) -> np.ndarray:

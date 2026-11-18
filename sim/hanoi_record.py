@@ -3,7 +3,7 @@
 Cada episodio: una configuración legal aleatoria de los 3 discos en los pivotes, y un
 movimiento legal (disco superior de un pivote a otro). El experto (hanoi_expert.py)
 ejecuta el movimiento y se guardan, en cada paso de control (30 Hz):
-  observation.state  (6, escala normalizada del SO-101)
+  observation.state  (6: 5 articulaciones en grados, pinza 0..100; como LeRobot use_degrees=True)
   action             (6, comandos normalizados)
   observation.images.camera1 (top), camera2 (wrist), camera3 (table)   (480x640)
   Los nombres coinciden con el checkpoint SO-101 (camera1/2/3), así no hace falta renombrar.

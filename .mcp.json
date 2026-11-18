@@ -2,13 +2,64 @@
   "mcpServers": {
     "so101-sim": {
       "command": "./.venv312/bin/python",
-      "args": ["sim/mcp_server.py"],
-      "env": { "SO101_BACKEND": "sim" }
+      "args": [
+        "sim/mcp_server.py"
+      ],
+      "env": {
+        "SO101_BACKEND": "sim"
+      }
+    },
+    "so101-sim-hanoi": {
+      "command": "./.venv312/bin/python",
+      "args": [
+        "sim/mcp_server.py"
+      ],
+      "env": {
+        "SO101_BACKEND": "sim",
+        "SO101_SCENE": "hanoi",
+        "SO101_HANOI_VLA_RED": "",
+        "SO101_HANOI_VLA_GREEN": "",
+        "SO101_HANOI_VLA_BLUE": "",
+        "SO101_HANOI_VLA_CYAN": "",
+        "SO101_HANOI_VLA_BROWN": ""
+      }
+    },
+    "so101-sim-objects": {
+      "command": "./.venv312/bin/mjpython",
+      "args": [
+        "sim/mcp_server.py"
+      ],
+      "env": {
+        "SO101_BACKEND": "sim",
+        "SO101_SCENE": "objects",
+        "SO101_VIEWER": "1"
+      }
     },
     "so101-real": {
       "command": "./.venv312/bin/python",
-      "args": ["sim/mcp_server.py"],
-      "env": { "SO101_BACKEND": "real" }
+      "args": [
+        "sim/mcp_server.py"
+      ],
+      "env": {
+        "SO101_BACKEND": "real",
+        "SO101_MAX_RELATIVE_TARGET": "2"
+      }
+    },
+    "so101-real-hanoi": {
+      "command": "./.venv312/bin/python",
+      "args": [
+        "sim/mcp_server.py"
+      ],
+      "env": {
+        "SO101_BACKEND": "real",
+        "SO101_SCENE": "hanoi",
+        "SO101_MAX_RELATIVE_TARGET": "2",
+        "SO101_HANOI_VLA_RED": "",
+        "SO101_HANOI_VLA_GREEN": "",
+        "SO101_HANOI_VLA_BLUE": "",
+        "SO101_HANOI_VLA_CYAN": "",
+        "SO101_HANOI_VLA_BROWN": ""
+      }
     }
   }
 }
