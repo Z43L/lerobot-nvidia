@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "so101-sim": {
+      "command": "./.venv312/bin/python",
+      "args": ["sim/mcp_server.py"],
+      "env": { "SO101_BACKEND": "sim" }
+    },
+    "so101-real": {
+      "command": "./.venv312/bin/python",
+      "args": ["sim/mcp_server.py"],
+      "env": { "SO101_BACKEND": "real" }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+<mujoco model="so101_vla_scene">
+    <!-- Escena para el VLA: SO-101 con cámara cenital "top" y cámara de muñeca "wrist" (nombres del checkpoint). -->
+    <include file="so101_vla.xml" />
+
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+        <global offwidth="640" offheight="480" />
+    </visual>
+
+    <worldbody>
+        <light pos="0 0 2" dir="0 0 -1" directional="true" />
+        <geom name="floor" size="1 1 0.05" pos="0 0 0" type="plane" rgba="0.85 0.85 0.85 1" />
+
+        <camera name="top" mode="fixed" pos="0.20 0.00 0.45" xyaxes="0 1 0 -1 0 0" fovy="60" />
+        <!-- Vista amplia de la mesa completa (no entra en la política VLA; solo para ver la escena) -->
+        <camera name="table" mode="targetbody" target="base" pos="0.10 -0.80 0.85" fovy="55" />
+
+        <body name="cube" pos="0.2 0.0 0.02">
+            <freejoint name="cube_free" />
+            <geom name="cube_geom" type="box" size="0.02 0.02 0.02" rgba="0.45 0.75 0.95 1" mass="0.03" />
+        </body>
+
+        <!-- Caja (bin) con paredes, centrada en (0.0, 0.25) -->
+        <body name="bin" pos="0.0 0.25 0">
+            <geom name="bin_floor" type="box" size="0.06 0.06 0.003" pos="0 0 0.003" rgba="0.05 0.05 0.05 1" />
+            <geom name="bin_wall_a" type="box" size="0.06 0.004 0.03" pos="0 0.056 0.03" rgba="0.05 0.05 0.05 1" />
+            <geom name="bin_wall_b" type="box" size="0.06 0.004 0.03" pos="0 -0.056 0.03" rgba="0.05 0.05 0.05 1" />
+            <geom name="bin_wall_c" type="box" size="0.004 0.06 0.03" pos="0.056 0 0.03" rgba="0.05 0.05 0.05 1" />
+            <geom name="bin_wall_d" type="box" size="0.004 0.06 0.03" pos="-0.056 0 0.03" rgba="0.05 0.05 0.05 1" />
+        </body>
+    </worldbody>
+</mujoco>

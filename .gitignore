@@ -1,0 +1,23 @@
+# Entornos virtuales (muy grandes, se recrean con pip)
+.venv/
+.venv312/
+
+# Datos y modelos generados (no se suben)
+real/datasets/
+real/checkpoints/
+sim/datasets/
+sim/checkpoints/
+*.safetensors
+*.parquet
+*.mp4
+
+# Imágenes de prueba y fotos (pueden contener personas)
+real/frames/
+sim/frames/
+
+# Configuración local con puertos y datos del puesto
+real/env.local.sh
+
+# Cachés de Python
+__pycache__/
+*.pyc

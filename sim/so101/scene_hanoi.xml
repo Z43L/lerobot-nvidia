@@ -1,0 +1,111 @@
+<mujoco model="so101_hanoi_scene">
+    <!-- Escena de Torre de Hanoi generada por sim/hanoi_env.py. No editar a mano. -->
+    <include file="so101_vla.xml" />
+
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+        <global offwidth="640" offheight="480" />
+    </visual>
+
+    <worldbody>
+        <light pos="0 0 2" dir="0 0 -1" directional="true" />
+        <geom name="floor" size="1 1 0.05" pos="0 0 0" type="plane" rgba="0.85 0.85 0.85 1" />
+
+        <camera name="top" mode="fixed" pos="0.20 0.00 0.45" xyaxes="0 1 0 -1 0 0" fovy="60" />
+        <camera name="table" mode="targetbody" target="base" pos="0.10 -0.80 0.85" fovy="55" />
+
+        <!-- Pivotes -->
+    <geom name="peg_A" type="cylinder" pos="0.19 -0.12 0.03" size="0.008 0.03" rgba="1 0.85 0.1 1" friction="1 0.005 0.0001" contype="2" conaffinity="2"/>
+    <geom type="cylinder" pos="0.19 -0.12 0.004" size="0.035 0.004" rgba="0.6 0.6 0.6 1" contype="0" conaffinity="0"/>
+    <geom name="peg_B" type="cylinder" pos="0.19 0.0 0.03" size="0.008 0.03" rgba="0.6 0.2 0.8 1" friction="1 0.005 0.0001" contype="2" conaffinity="2"/>
+    <geom type="cylinder" pos="0.19 0.0 0.004" size="0.035 0.004" rgba="0.6 0.6 0.6 1" contype="0" conaffinity="0"/>
+    <geom name="peg_C" type="cylinder" pos="0.19 0.12 0.03" size="0.008 0.03" rgba="1 0.5 0.05 1" friction="1 0.005 0.0001" contype="2" conaffinity="2"/>
+    <geom type="cylinder" pos="0.19 0.12 0.004" size="0.035 0.004" rgba="0.6 0.6 0.6 1" contype="0" conaffinity="0"/>
+
+    <body name="disk_red" pos="0 0 0">
+      <freejoint name="disk_red_free"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.01450 0.00000 0" quat="1.00000 0 0 0.00000" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.01306 0.00629 0" quat="0.97493 0 0 0.22252" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.00904 0.01134 0" quat="0.90097 0 0 0.43388" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.00323 0.01414 0" quat="0.78183 0 0 0.62349" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.00323 0.01414 0" quat="0.62349 0 0 0.78183" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.00904 0.01134 0" quat="0.43388 0 0 0.90097" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.01306 0.00629 0" quat="0.22252 0 0 0.97493" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.01450 0.00000 0" quat="0.00000 0 0 1.00000" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.01306 -0.00629 0" quat="-0.22252 0 0 0.97493" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.00904 -0.01134 0" quat="-0.43388 0 0 0.90097" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="-0.00323 -0.01414 0" quat="-0.62349 0 0 0.78183" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.00323 -0.01414 0" quat="-0.78183 0 0 0.62349" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.00904 -0.01134 0" quat="-0.90097 0 0 0.43388" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00350 0.00351 0.00600" pos="0.01306 -0.00629 0" quat="-0.97493 0 0 0.22252" rgba="0.9 0.1 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+    </body>
+    <body name="disk_green" pos="0 0 0">
+      <freejoint name="disk_green_free"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.01700 0.00000 0" quat="1.00000 0 0 0.00000" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.01532 0.00738 0" quat="0.97493 0 0 0.22252" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.01060 0.01329 0" quat="0.90097 0 0 0.43388" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.00378 0.01657 0" quat="0.78183 0 0 0.62349" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.00378 0.01657 0" quat="0.62349 0 0 0.78183" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.01060 0.01329 0" quat="0.43388 0 0 0.90097" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.01532 0.00738 0" quat="0.22252 0 0 0.97493" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.01700 0.00000 0" quat="0.00000 0 0 1.00000" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.01532 -0.00738 0" quat="-0.22252 0 0 0.97493" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.01060 -0.01329 0" quat="-0.43388 0 0 0.90097" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="-0.00378 -0.01657 0" quat="-0.62349 0 0 0.78183" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.00378 -0.01657 0" quat="-0.78183 0 0 0.62349" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.01060 -0.01329 0" quat="-0.90097 0 0 0.43388" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00600 0.00412 0.00600" pos="0.01532 -0.00738 0" quat="-0.97493 0 0 0.22252" rgba="0.1 0.7 0.2 1" mass="0.004" contype="1" conaffinity="3"/>
+    </body>
+    <body name="disk_blue" pos="0 0 0">
+      <freejoint name="disk_blue_free"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.01950 0.00000 0" quat="1.00000 0 0 0.00000" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.01757 0.00846 0" quat="0.97493 0 0 0.22252" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.01216 0.01525 0" quat="0.90097 0 0 0.43388" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.00434 0.01901 0" quat="0.78183 0 0 0.62349" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.00434 0.01901 0" quat="0.62349 0 0 0.78183" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.01216 0.01525 0" quat="0.43388 0 0 0.90097" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.01757 0.00846 0" quat="0.22252 0 0 0.97493" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.01950 0.00000 0" quat="0.00000 0 0 1.00000" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.01757 -0.00846 0" quat="-0.22252 0 0 0.97493" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.01216 -0.01525 0" quat="-0.43388 0 0 0.90097" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="-0.00434 -0.01901 0" quat="-0.62349 0 0 0.78183" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.00434 -0.01901 0" quat="-0.78183 0 0 0.62349" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.01216 -0.01525 0" quat="-0.90097 0 0 0.43388" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.00850 0.00473 0.00600" pos="0.01757 -0.00846 0" quat="-0.97493 0 0 0.22252" rgba="0.1 0.3 0.95 1" mass="0.004" contype="1" conaffinity="3"/>
+    </body>
+    <body name="disk_cyan" pos="0 0 0">
+      <freejoint name="disk_cyan_free"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.02200 0.00000 0" quat="1.00000 0 0 0.00000" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.01982 0.00955 0" quat="0.97493 0 0 0.22252" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.01372 0.01720 0" quat="0.90097 0 0 0.43388" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.00490 0.02145 0" quat="0.78183 0 0 0.62349" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.00490 0.02145 0" quat="0.62349 0 0 0.78183" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.01372 0.01720 0" quat="0.43388 0 0 0.90097" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.01982 0.00955 0" quat="0.22252 0 0 0.97493" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.02200 0.00000 0" quat="0.00000 0 0 1.00000" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.01982 -0.00955 0" quat="-0.22252 0 0 0.97493" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.01372 -0.01720 0" quat="-0.43388 0 0 0.90097" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="-0.00490 -0.02145 0" quat="-0.62349 0 0 0.78183" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.00490 -0.02145 0" quat="-0.78183 0 0 0.62349" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.01372 -0.01720 0" quat="-0.90097 0 0 0.43388" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01100 0.00533 0.00600" pos="0.01982 -0.00955 0" quat="-0.97493 0 0 0.22252" rgba="0.1 0.85 0.9 1" mass="0.004" contype="1" conaffinity="3"/>
+    </body>
+    <body name="disk_brown" pos="0 0 0">
+      <freejoint name="disk_brown_free"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.02450 0.00000 0" quat="1.00000 0 0 0.00000" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.02207 0.01063 0" quat="0.97493 0 0 0.22252" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.01528 0.01915 0" quat="0.90097 0 0 0.43388" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.00545 0.02389 0" quat="0.78183 0 0 0.62349" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.00545 0.02389 0" quat="0.62349 0 0 0.78183" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.01528 0.01915 0" quat="0.43388 0 0 0.90097" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.02207 0.01063 0" quat="0.22252 0 0 0.97493" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.02450 0.00000 0" quat="0.00000 0 0 1.00000" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.02207 -0.01063 0" quat="-0.22252 0 0 0.97493" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.01528 -0.01915 0" quat="-0.43388 0 0 0.90097" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="-0.00545 -0.02389 0" quat="-0.62349 0 0 0.78183" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.00545 -0.02389 0" quat="-0.78183 0 0 0.62349" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.01528 -0.01915 0" quat="-0.90097 0 0 0.43388" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+      <geom type="box" size="0.01350 0.00594 0.00600" pos="0.02207 -0.01063 0" quat="-0.97493 0 0 0.22252" rgba="0.45 0.25 0.1 1" mass="0.004" contype="1" conaffinity="3"/>
+    </body>
+    </worldbody>
+</mujoco>
