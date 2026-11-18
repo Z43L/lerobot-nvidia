@@ -22,9 +22,9 @@ Usa la skill `so101-hardware-check`. No sigas si hay algún `FAIL` o `WARN` sin 
 - Un fine-tune de SmolVLA con pocos datos en Mac tarda mucho. Dile al usuario y recomienda GPU NVIDIA.
 - Ejecuta solo con su confirmación:
   ```bash
-  real/train.sh <nombre_dataset> 20000 cuda
+  real/train.sh <nombre_dataset> 20000 mps
   ```
-- En Mac, usa `mps` o `cpu` y pocos pasos solo para validar el flujo.
+- En Mac, usa siempre `mps` (GPU de Apple). Usa `cuda` solo si el puesto tiene GPU NVIDIA. `cpu` tarda ~20 veces más.
 
 ## 4. Desplegar en el brazo real
 - Requisitos: área libre, usuario junto al brazo con el corte de alimentación a mano, y `SO101_MAX_RELATIVE_TARGET` bajo (por defecto 5).

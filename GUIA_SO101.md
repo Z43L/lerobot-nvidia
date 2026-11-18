@@ -66,8 +66,8 @@ El líder lo mueve una persona. Los datos quedan en `real/datasets/<nombre>/`.
 
 ### 4.4. Entrenar
 ```bash
-real/train.sh cube_demos 20000 cuda    # GPU NVIDIA
-real/train.sh cube_demos 500 cpu       # solo para validar el flujo en Mac
+real/train.sh cube_demos 20000 mps     # GPU de Apple (Mac)
+real/train.sh cube_demos 20000 cuda    # solo si el equipo tiene GPU NVIDIA
 ```
 Los checkpoints van a `real/checkpoints/`. En Mac, el fine-tune completo es lento.
 
@@ -130,11 +130,11 @@ Sin `ALLOW_REAL_MOTION=1`, `run_skill` queda bloqueado en real.
 
 **Primer test (no saltarse)**
 - [ ] `real/record.sh 1 test_run "Pick up a cube and place in the bin"` → revisar el episodio.
-- [ ] Entrenamiento de prueba corto (p. ej. 500 pasos) para validar el flujo: `real/train.sh test_run 500 cuda`.
+- [ ] Entrenamiento de prueba corto (p. ej. 500 pasos) para validar el flujo: `real/train.sh test_run 500 mps`.
 
 **Datos y entrenamiento**
 - [ ] Grabar ~30 episodios de una sola tarea: `real/record.sh 30 cube_demos "..."`.
-- [ ] Entrenamiento completo en GPU: `real/train.sh cube_demos 20000 cuda`.
+- [ ] Entrenamiento completo en GPU: `real/train.sh cube_demos 20000 mps`.
 - [ ] Guardar la ruta del checkpoint en `real/checkpoints/`.
 
 **Ejecución**

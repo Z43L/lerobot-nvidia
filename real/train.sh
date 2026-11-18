@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Fine-tune de SmolVLA sobre un dataset grabado con real/record.sh.
-# Uso: real/train.sh <nombre_dataset> [pasos] [dispositivo: cuda|mps|cpu] [policy_base]
-# En Mac, mps/cpu son lentos: usa una GPU NVIDIA (la del evento o nube) para entrenar.
+# Uso: real/train.sh <nombre_dataset> [pasos] [dispositivo: mps|cuda|cpu] [policy_base]
+# Por defecto mps (GPU de Apple). Con una GPU NVIDIA en el puesto, pasa cuda como tercer argumento.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source real/env.sh
+export PYTORCH_ENABLE_MPS_FALLBACK=1
 NAME="${1:?Falta el nombre del dataset}"
 STEPS="${2:-20000}"
-DEVICE="${3:-cuda}"
+DEVICE="${3:-mps}"
 BASE="${4:-lerobot/smolvla_base}"
 OUT="real/checkpoints/${NAME}_$(date +%Y%m%d_%H%M)"
 ./.venv312/bin/lerobot-train \

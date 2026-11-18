@@ -6,7 +6,8 @@
         "sim/mcp_server.py"
       ],
       "env": {
-        "SO101_BACKEND": "sim"
+        "SO101_BACKEND": "sim",
+        "SO101_VLA_DEVICE": "mps"
       }
     },
     "so101-sim-hanoi": {
@@ -21,7 +22,8 @@
         "SO101_HANOI_VLA_GREEN": "",
         "SO101_HANOI_VLA_BLUE": "",
         "SO101_HANOI_VLA_CYAN": "",
-        "SO101_HANOI_VLA_BROWN": ""
+        "SO101_HANOI_VLA_BROWN": "",
+        "SO101_VLA_DEVICE": "mps"
       }
     },
     "so101-sim-objects": {
@@ -32,7 +34,8 @@
       "env": {
         "SO101_BACKEND": "sim",
         "SO101_SCENE": "objects",
-        "SO101_VIEWER": "1"
+        "SO101_VIEWER": "1",
+        "SO101_VLA_DEVICE": "mps"
       }
     },
     "so101-real": {
@@ -42,7 +45,8 @@
       ],
       "env": {
         "SO101_BACKEND": "real",
-        "SO101_MAX_RELATIVE_TARGET": "2"
+        "SO101_MAX_RELATIVE_TARGET": "2",
+        "SO101_VLA_DEVICE": "mps"
       }
     },
     "so101-real-hanoi": {
@@ -58,7 +62,8 @@
         "SO101_HANOI_VLA_GREEN": "",
         "SO101_HANOI_VLA_BLUE": "",
         "SO101_HANOI_VLA_CYAN": "",
-        "SO101_HANOI_VLA_BROWN": ""
+        "SO101_HANOI_VLA_BROWN": "",
+        "SO101_VLA_DEVICE": "mps"
       }
     }
   }

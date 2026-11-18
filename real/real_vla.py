@@ -32,7 +32,7 @@ class VLAResult:
 class RealVLARunner:
     """Carga una vez el checkpoint y lo ejecuta sobre un SO101Follower ya conectado."""
 
-    def __init__(self, robot, repo_id: str, device: str = "cpu", cams: dict[str, str] | None = None):
+    def __init__(self, robot, repo_id: str, device: str = "mps", cams: dict[str, str] | None = None):
         from lerobot.policies.factory import make_pre_post_processors
         from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
 

@@ -48,7 +48,10 @@ class VLARunner:
         self.pre = None
         self.post = None
         self._renderer = None
-        self.device = os.environ.get("SO101_VLA_DEVICE", "cpu")  # cpu | mps | cuda
+        self.device = os.environ.get("SO101_VLA_DEVICE", "mps")  # mps (por defecto en Mac) | cuda | cpu
+        if self.device == "mps" and not torch.backends.mps.is_available():
+            print("[vla] MPS no disponible en este equipo: uso CPU (mucho más lento)", flush=True)
+            self.device = "cpu"
 
     # ------------------------------------------------------------- carga
     def _load(self) -> None:

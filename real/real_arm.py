@@ -155,7 +155,7 @@ class RealArm:
 
         repo = repo_id or os.environ.get("SO101_POLICY", config.REFERENCE_POLICY)
         if repo not in self._vlas:  # un VLA por color; se cargan al primer uso
-            self._vlas[repo] = RealVLARunner(self.robot, repo, device=os.environ.get("SO101_VLA_DEVICE", "cpu"))
+            self._vlas[repo] = RealVLARunner(self.robot, repo, device=os.environ.get("SO101_VLA_DEVICE", "mps"))
         res = self._vlas[repo].run(instruction, seconds=seconds)
         return {"status": res.stopped_by, "steps": res.steps, "seconds": res.seconds,
                 "instruction": instruction, "policy": repo}
