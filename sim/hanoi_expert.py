@@ -24,10 +24,12 @@ GRIP_IDX = 5
 
 
 def rad_to_norm(sim: HanoiSim, q: np.ndarray) -> np.ndarray:
+    """Radianes de la sim -> unidades de LeRobot/real: grados en las articulaciones y 0..100 en la pinza.
+    Igual que VLARunner.rad_to_norm (sim/vla_policy.py): así los datos de Hanoi y el brazo real coinciden."""
     lo, hi = sim.model.jnt_range[:6, 0], sim.model.jnt_range[:6, 1]
     frac = (q - lo) / (hi - lo)
-    out = frac * 200.0 - 100.0
-    out[GRIP_IDX] = frac[GRIP_IDX] * 100.0
+    out = np.degrees(q).astype(np.float64)
+    out[GRIP_IDX] = np.clip(frac[GRIP_IDX], 0.0, 1.0) * 100.0
     return out
 
 

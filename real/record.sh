@@ -4,6 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source real/env.sh
+# Cámara de mesa opcional (SO101_TABLE_CAM >= 0). Hanoi la necesita como camera3.
+CAM_TABLE=""
+if [ "${SO101_TABLE_CAM:--1}" -ge 0 ]; then CAM_TABLE=", table: {type: opencv, index_or_path: ${SO101_TABLE_CAM}, width: 640, height: 480, fps: 30}"; fi
 EPISODES="${1:-30}"
 NAME="${2:-so101_demos}"
 TASK="${3:-}"
@@ -14,10 +17,12 @@ REPO="local/${NAME}"
   --robot.port="$SO101_FOLLOWER_PORT" \
   --robot.id="$SO101_FOLLOWER_ID" \
   --robot.max_relative_target="${SO101_MAX_RELATIVE_TARGET:-5}" \
-  --robot.cameras="{ top: {type: opencv, index_or_path: ${SO101_TOP_CAM}, width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: ${SO101_WRIST_CAM}, width: 640, height: 480, fps: 30} }" \
+  --robot.use_degrees=true \
+  --robot.cameras="{ top: {type: opencv, index_or_path: ${SO101_TOP_CAM}, width: 640, height: 480, fps: 30}, wrist: {type: opencv, index_or_path: ${SO101_WRIST_CAM}, width: 640, height: 480, fps: 30}${CAM_TABLE} }" \
   --teleop.type=so101_leader \
   --teleop.port="$SO101_LEADER_PORT" \
   --teleop.id="$SO101_LEADER_ID" \
+  --teleop.use_degrees=true \
   --dataset.repo_id="$REPO" \
   --dataset.root="real/datasets/${NAME}" \
   --dataset.single_task="$TASK" \

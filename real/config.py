@@ -28,8 +28,14 @@ CAM_WIDTH = 640
 CAM_HEIGHT = 480
 FPS = 30
 
-# Seguridad: máximo cambio de posición por paso de control (unidades normalizadas).
-# LeRobot lo aplica en el seguidor; bájalo si el brazo se mueve de forma brusca.
+# Unidades de las articulaciones del brazo (la pinza va siempre 0..100).
+# Fijo en GRADOS: el checkpoint de referencia se entrenó así. Sus estadísticas llegan a ±110
+# en shoulder_lift y a 171 en wrist_roll, valores que RANGE_M100_100 no puede producir.
+# No es una variable de entorno a propósito: cambiarlo rompería el checkpoint.
+USE_DEGREES = True
+
+# Seguridad: máximo cambio de posición por paso de control (en unidades de LeRobot:
+# grados si USE_DEGREES, si no escala -100..100). LeRobot lo aplica en el seguidor.
 MAX_RELATIVE_TARGET = float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "5"))
 
 # Tareas del entrenamiento del checkpoint de referencia (texto exacto)
