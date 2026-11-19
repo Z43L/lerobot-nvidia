@@ -1,5 +1,24 @@
 {
   "mcpServers": {
+    "so101-hub": {
+      "command": "./.venv312/bin/python",
+      "args": [
+        "hub/so101_hub.py"
+      ],
+      "env": {
+        "SO101_VLA_DEVICE": "mps"
+      }
+    },
+    "so101-motion": {
+      "command": "./.venv312/bin/python",
+      "args": [
+        "hub/so101_motion.py"
+      ],
+      "env": {
+        "SO101_MAX_RELATIVE_TARGET": "2",
+        "SO101_VLA_DEVICE": "mps"
+      }
+    },
     "so101-sim": {
       "command": "./.venv312/bin/python",
       "args": [
@@ -34,7 +53,9 @@
       "env": {
         "SO101_BACKEND": "sim",
         "SO101_SCENE": "objects",
+        "SO101_GRASP": "attach",
         "SO101_VIEWER": "1",
+        "SO101_PUBLISH_STATE": "1",
         "SO101_VLA_DEVICE": "mps"
       }
     },

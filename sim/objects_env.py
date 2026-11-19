@@ -14,6 +14,7 @@ Uso (test de agarre, sin VLA):
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 import mujoco
@@ -26,14 +27,19 @@ OBJECTS_SCENE = HERE / "so101" / "scene_objects.xml"
 CONTROL_HZ = 30
 GRIP_OPEN = 1.5
 GRIP_CLOSED = -0.1745  # límite mecánico: con -0.1 el servo no aprieta (llega a su objetivo sin fuerza)
-TRAVEL_Z = 0.12
+# Modo de agarre. "physics" (por defecto): agarre por fricción con las mordazas.
+# "attach": ENGANCHE TEMPORAL para validar la lógica de la skill mientras la pinza no coge por fricción.
+# No es física real: el objeto sigue al TCP desde que se engancha hasta que se suelta.
+GRASP_MODE = os.environ.get("SO101_GRASP", "physics")
+TRAVEL_Z = 0.085  # con la pinza vertical, wrist_flex llega a su tope por encima de ~0.09 m (radio ~0.18 m)
 
 # Objetos de altura suficiente para que las mandíbulas los pinzen de lado (ver notas de
 # Fase 1: lápiz y móvil tumbados quedan por debajo del borde de las mandíbulas).
 # pos: (x, y) inicial; grip_dir: dirección horizontal de cierre; grasp_z: altura del TCP al coger;
 # rest_z: centro del objeto apoyado en la mesa.
 OBJECTS = {
-    "bottle": {"pos": (0.17, -0.06), "yaw": 0.0, "grip_dir": (0.0, 1.0), "grasp_z": 0.03, "rest_z": 0.05},
+    # tumbada: el cilindro descansa de lado (eje paralelo a Y, centro a z = radio)
+    "bottle": {"pos": (0.17, -0.06), "yaw": 0.0, "grip_dir": (0.0, 1.0), "grasp_z": 0.02, "rest_z": 0.02, "lying": True},
     "box": {"pos": (0.19, 0.04), "yaw": 0.0, "grip_dir": (0.0, 1.0), "grasp_z": 0.02, "rest_z": 0.03},
     "cup": {"pos": (0.16, 0.12), "yaw": 0.0, "grip_dir": (0.0, 1.0), "grasp_z": 0.02, "rest_z": 0.04},
 }
@@ -117,6 +123,15 @@ class ObjectsSim(SimArm):
         for name in OBJECTS:
             jid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{name}_free")
             self.obj_qadr[name] = int(self.model.jnt_qposadr[jid])
+        # Geoms de cada objeto y su colisión original (para restaurarla al soltar en modo attach)
+        self._obj_geoms: dict[str, list[int]] = {}
+        for name in OBJECTS:
+            bid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+            self._obj_geoms[name] = [g for g in range(self.model.ngeom) if self.model.geom_bodyid[g] == bid]
+        self._obj_contype = self.model.geom_contype.copy()
+        self._obj_conaffinity = self.model.geom_conaffinity.copy()
+        self._attach_offset = np.zeros(3)
+        self._pin = None
         self.substeps = max(1, int(round(1.0 / CONTROL_HZ / self.model.opt.timestep)))
         self.close_local = self._closing_axis_local()
         self.reset_objects()
@@ -131,12 +146,20 @@ class ObjectsSim(SimArm):
             return SimArm.reset(self)
         mujoco.mj_resetData(self.model, self.data)
         self.data.ctrl[:] = self.home_qpos
+        if hasattr(self, "_obj_geoms"):  # suelta cualquier enganche y restaura colisiones de objetos
+            for gid in sum(self._obj_geoms.values(), []):
+                self.model.geom_contype[gid] = self._obj_contype[gid]
+                self.model.geom_conaffinity[gid] = self._obj_conaffinity[gid]
+            self.held_obj = None
         layout = layout or {n: (*o["pos"], o["yaw"]) for n, o in OBJECTS.items()}
         for name, a in self.obj_qadr.items():
             x, y, yaw = layout.get(name, (0.3, 0.3, 0.0))
             z = self._rest_height(name)
             self.data.qpos[a : a + 3] = [x, y, z]
-            self.data.qpos[a + 3 : a + 7] = [np.cos(yaw / 2), 0, 0, np.sin(yaw / 2)]
+            if OBJECTS[name].get("lying"):  # rotación de 90 grados alrededor de X: el cilindro queda tumbado
+                self.data.qpos[a + 3 : a + 7] = [np.cos(np.pi / 4), np.sin(np.pi / 4), 0, 0]
+            else:
+                self.data.qpos[a + 3 : a + 7] = [np.cos(yaw / 2), 0, 0, np.sin(yaw / 2)]
         for _ in range(SETTLE_STEPS_OBJ):
             mujoco.mj_step(self.model, self.data)
         return self.get_state()
@@ -219,8 +242,10 @@ class ObjectsSim(SimArm):
     def _tick(self, q5: np.ndarray, grip: float) -> None:
         self.data.ctrl[:6] = np.concatenate([q5, [grip]])
         for _ in range(self.substeps):
+            self._sync_attached()
             mujoco.mj_step(self.model, self.data)
         self.sync_view()
+        self.publish_state()
 
     def move_tcp_to(self, target, grip_dir, grip: float, seconds: float, q5_start) -> np.ndarray:
         """Lleva el TCP en línea recta (interpolación suave) con la pinza a `grip`."""
@@ -241,12 +266,77 @@ class ObjectsSim(SimArm):
         for _ in range(n):
             self._tick(q5, grip)
 
+    # ------------------------------------------------ enganche temporal (attach)
+    def _sync_attached(self) -> None:
+        """Mantiene el objeto enganchado en su posición relativa al TCP (solo modo attach)."""
+        if self._pin is not None:  # objeto fijado en su sitio mientras la pinza se aproxima
+            name, pose = self._pin
+            a = self.obj_qadr[name]
+            self.data.qpos[a : a + 7] = pose
+            dof = self.model.jnt_dofadr[self.model.joint(f"{name}_free").id]
+            self.data.qvel[dof : dof + 6] = 0.0
+            return
+        if self.held_obj is None or GRASP_MODE != "attach":
+            return
+        a = self.obj_qadr[self.held_obj]
+        self.data.qpos[a : a + 3] = self.tcp() + self._attach_offset
+        self.data.qpos[a + 3 : a + 7] = [1, 0, 0, 0]
+        dof = self.model.jnt_dofadr[self.model.joint(f"{self.held_obj}_free").id]
+        self.data.qvel[dof : dof + 6] = 0.0
+
+    def _attach(self, name: str) -> bool:
+        """Engancha `name` al TCP si está a menos de 3 cm. Desactiva su colisión mientras lo sostiene."""
+        off = self.obj_pos(name) - self.tcp()
+        if float(np.linalg.norm(off)) > 0.03:
+            return False
+        self._attach_offset = off
+        self.held_obj = name
+        for gid in self._obj_geoms[name]:
+            self.model.geom_contype[gid] = 0
+            self.model.geom_conaffinity[gid] = 0
+        return True
+
+    def _release(self) -> None:
+        if self.held_obj is None:
+            return
+        for gid in self._obj_geoms[self.held_obj]:
+            self.model.geom_contype[gid] = self._obj_contype[gid]
+            self.model.geom_conaffinity[gid] = self._obj_conaffinity[gid]
+        self.held_obj = None
+
+    def _attach_pick(self, name: str) -> dict:
+        o = OBJECTS[name]
+        x, y = self.obj_pos(name)[:2]
+        gd = o["grip_dir"]
+        # Durante la aproximación el objeto no colisiona: si no, la pinza lo empuja (la física de
+        # la pinza no permite agarrarlo; ver el apartado de estado de la skill).
+        for gid in self._obj_geoms[name]:
+            self.model.geom_contype[gid] = 0
+            self.model.geom_conaffinity[gid] = 0
+        a = self.obj_qadr[name]
+        self._pin = (name, self.data.qpos[a : a + 7].copy())
+        q5 = self.data.qpos[:5].copy()
+        q5 = self.move_tcp_to((x, y, TRAVEL_Z), gd, GRIP_OPEN, 2.0, q5)
+        q5 = self.move_tcp_to((x, y, o["grasp_z"]), gd, GRIP_OPEN, 1.2, q5)
+        self.hold_grip(q5, GRIP_CLOSED, 0.8)
+        self._pin = None
+        attached = self._attach(name)
+        q5 = self.move_tcp_to((x, y, TRAVEL_Z), gd, GRIP_CLOSED, 1.5, q5)
+        self.hold_grip(q5, GRIP_CLOSED, 0.5)
+        lifted = float(self.obj_pos(name)[2])
+        held = attached and lifted > 0.05
+        return {"object": name, "held": bool(held), "obj_z_m": round(lifted, 4),
+                "tcp_obj_dist_m": round(float(np.linalg.norm(self.obj_pos(name) - self.tcp())), 4),
+                "grasp_mode": "attach"}
+
     def grasp_test(self, name: str, reset: bool = True) -> dict:
         """Coge el objeto con la pinza, lo eleva y comprueba que se sostiene sin enganche.
         reset=True reinicia la escena antes (para pruebas); el MCP usa reset=False."""
         o = OBJECTS[name]
         if reset:
             self.reset_objects()
+        if GRASP_MODE == "attach":
+            return self._attach_pick(name)
         x, y = self.obj_pos(name)[:2]
         gd = o["grip_dir"]
         q5 = self.data.qpos[:5].copy()
@@ -276,8 +366,12 @@ class ObjectsSim(SimArm):
         """Coge el objeto `name` desde su posición actual y lo levanta."""
         if name not in OBJECTS:
             return {"ok": False, "error": f"objeto desconocido: {name}. Disponibles: {list(OBJECTS)}"}
+        if self.held_obj is not None:
+            return {"ok": False, "held": False, "held_object": self.held_obj,
+                    "error": f"la pinza ya sostiene {self.held_obj}; suéltalo con place antes de coger otro"}
         res = self.grasp_test(name, reset=False)
-        self.held_obj = name if res["held"] else None
+        if GRASP_MODE != "attach":
+            self.held_obj = name if res["held"] else None
         res.update({"ok": res["held"], "held_object": self.held_obj, "tcp": [round(float(v), 4) for v in self.tcp()]})
         return res
 
@@ -288,6 +382,7 @@ class ObjectsSim(SimArm):
         q5 = self.move_tcp_to((x, y, TRAVEL_Z), None, GRIP_CLOSED, 2.0, q5)
         q5 = self.move_tcp_to((x, y, z), None, GRIP_CLOSED, 1.2, q5)
         self.hold_grip(q5, GRIP_OPEN, 0.8)
+        self._release()  # se suelta al abrir la pinza, antes de subir
         q5 = self.move_tcp_to((x, y, TRAVEL_Z), None, GRIP_OPEN, 1.0, q5)
         self.held_obj = None
         dist = float(np.linalg.norm(self.obj_pos(held) - np.array([x, y, z]))) if held else None
@@ -298,16 +393,61 @@ class ObjectsSim(SimArm):
 SETTLE_STEPS_OBJ = 300
 
 
+def follow() -> None:
+    """Ventana de solo visualización: copia la pose que publica el servidor MCP en STATE_FILE.
+    No simula física. Si el servidor se cae, la ventana conserva la última pose recibida."""
+    import json
+    import time
+
+    import mujoco.viewer
+
+    from sim_arm import STATE_FILE
+
+    write_scene()
+    model = mujoco.MjModel.from_xml_path(str(OBJECTS_SCENE))
+    data = mujoco.MjData(model)
+    viewer = mujoco.viewer.launch_passive(model, data)
+    print(f"Siguiendo {STATE_FILE}. Ciérrala para terminar.", flush=True)
+    last = None
+    while viewer.is_running():
+        try:
+            stamp = STATE_FILE.stat().st_mtime
+            if stamp != last:
+                qpos = json.loads(STATE_FILE.read_text())["qpos"]
+                if len(qpos) == model.nq:
+                    data.qpos[:] = qpos
+                    mujoco.mj_forward(model, data)
+                last = stamp
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            pass  # aún no hay estado, o se estaba escribiendo: se reintenta
+        viewer.sync()
+        time.sleep(0.03)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--grasp-test", action="store_true")
     ap.add_argument("--only", default=None)
+    ap.add_argument("--viewer", action="store_true", help="abre la ventana de MuJoCo (lanzar con mjpython)")
+    ap.add_argument("--follow", action="store_true",
+                    help="ventana que muestra la pose que publica el servidor MCP (sim/frames/view_state.json)")
     args = ap.parse_args()
+    if args.follow:
+        follow()
+        return
     sim = ObjectsSim()
+    if args.viewer:
+        sim.attach_viewer(realtime=True)  # la ventana vive en el hilo principal (mjpython)
     if args.grasp_test:
         names = [args.only] if args.only else list(OBJECTS)
         for n in names:
             print(sim.grasp_test(n), flush=True)
+    if args.viewer:
+        import time
+        print("Ventana abierta. Ciérrala para terminar.", flush=True)
+        while sim.viewer.is_running():
+            sim.viewer.sync()
+            time.sleep(0.03)
 
 
 if __name__ == "__main__":
