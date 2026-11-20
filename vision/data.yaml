@@ -1,0 +1,22 @@
+# Dataset chess-pieces-new (Roboflow Universe, v25), licencia Public Domain.
+# https://universe.roboflow.com/joseph-nelson/chess-pieces-new/dataset/25
+# 13 clases; 'bishop' (id 0) sin color se ignora en board_mapping.py.
+path: /Users/david/Desktop/lerobot-nvidia/vision/datasets
+train: train/images
+val: valid/images
+test: /Users/david/Desktop/lerobot-nvidia/vision/test/images
+
+names:
+  0: bishop
+  1: black-bishop
+  2: black-king
+  3: black-knight
+  4: black-pawn
+  5: black-queen
+  6: black-rook
+  7: white-bishop
+  8: white-king
+  9: white-knight
+  10: white-pawn
+  11: white-queen
+  12: white-rook
