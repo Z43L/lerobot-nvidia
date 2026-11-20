@@ -8,4 +8,5 @@ export SO101_TOP_CAM="${SO101_TOP_CAM:-0}"
 export SO101_WRIST_CAM="${SO101_WRIST_CAM:-1}"
 export SO101_TABLE_CAM="${SO101_TABLE_CAM:--1}"   # -1 = sin cámara de mesa; p. ej. 0 para la webcam del Mac
 export SO101_VLA_DEVICE="${SO101_VLA_DEVICE:-mps}"  # GPU de Apple. Usa cuda solo si el puesto tiene GPU NVIDIA
+export ALLOW_REAL_MOTION=1
 [ -f "$(dirname "${BASH_SOURCE[0]}")/env.local.sh" ] && source "$(dirname "${BASH_SOURCE[0]}")/env.local.sh"

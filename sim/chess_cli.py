@@ -10,6 +10,8 @@ escena desde ese FEN, así que el orden de las llamadas es lo único que importa
   ./.venv312/bin/python sim/chess_cli.py move <uci>             # ejecuta una jugada concreta (ya legal) sin cambiar de turno
   ./.venv312/bin/python sim/chess_cli.py render [fichero.png]   # imagen de la escena (cámara 'table')
 
+Ver la partida: SO101_VIEWER=1 ./.venv312/bin/mjpython sim/chess_cli.py ... (ventana de MuJoCo en vivo).
+
 Backend: CHESS_BACKEND=sim (por defecto). CHESS_BACKEND=real queda reservado para el brazo real y todavía no existe
 (ver sim/chess_real.py y la skill so101-ajedrez-mover).
 """
@@ -115,6 +117,8 @@ def run_on_backend(board: chess.Board, move: chess.Move) -> dict:
     from chess_sim import ChessSim
 
     sim = ChessSim()
+    if os.environ.get("SO101_VIEWER") == "1":  # ventana de MuJoCo; requiere mjpython en macOS
+        sim.attach_viewer(realtime=True)
     return sim.execute(move, board)
 
 

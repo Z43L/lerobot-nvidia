@@ -27,6 +27,13 @@ Targets: 6 valores en **grados** (shoulder_pan, shoulder_lift, elbow_flex, wrist
 5. **Ejecución.** Llama a `motion_execute` con los mismos targets y el `confirm_token`. Si devuelve `blocked`, lee el motivo y vuelve al paso 3.
 6. **Verificación.** Revisa `final_deg` con el usuario. Si no llegó (`timeout`), no reintentes sin un nuevo preview y confirmación.
 
+## Calibración que se usa
+
+- La calibración real es la guardada en `~/.cache/huggingface/lerobot/calibration/` (seguidor en `robots/so_follower/so101_follower.json`, líder en `teleoperators/so_leader/so101_leader.json`). `RealArm` y `so101-hub` la cargan por defecto; no la cambies tú.
+- Antes de interpretar grados, comprueba la fecha de esos ficheros. Un fichero nuevo cambia el significado de cada grado: si cambia, vuelve a leer posiciones antes de mover nada.
+- Un "0°" del proyecto es el centro del rango calibrado, **no** una pose física concreta. Para "recto hacia arriba" u otra pose, pide la confirmación visual de la persona antes de confirmar el destino.
+- Verificación de hoy: seguidor y líder coinciden en pan, lift, codo y muñeca (flex). `wrist_roll` no coincide (86° de diferencia); hasta resolverlo, no uses la muñeca roll en movimientos grabados.
+
 ## Reglas
 
 - Empieza con movimientos pequeños (unos pocos grados) y verifica antes de hacer más grandes.

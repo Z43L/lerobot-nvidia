@@ -28,7 +28,8 @@ def fail(msg):
 def main() -> int:
     problems = 0
 
-    ports = sorted(glob.glob("/dev/tty.usbmodem*") + glob.glob("/dev/tty.usbserial*"))
+    ports = sorted(glob.glob("/dev/cu.usbmodem*") + glob.glob("/dev/cu.usbserial*")
+                   + glob.glob("/dev/tty.usbmodem*") + glob.glob("/dev/tty.usbserial*"))
     print("Puertos USB-serie detectados:", ports or "ninguno")
     for label, port, var in [("seguidor", config.FOLLOWER_PORT, "FOLLOWER"), ("líder", config.LEADER_PORT, "LEADER")]:
         if not port:
