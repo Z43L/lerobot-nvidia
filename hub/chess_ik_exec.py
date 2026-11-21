@@ -39,6 +39,7 @@ for sub in ("real", "sim", "hub"):
 
 import board_touch_calib as b  # noqa: E402
 from chess_ik import J4, Kin, steps_between  # noqa: E402
+import chess_wrist as WR  # noqa: E402
 
 import chess_config as CFG  # noqa: E402  (única fuente de cámaras, puertos, rutas y límites)
 
@@ -96,6 +97,39 @@ CLEAR_SHIFT_M = float(os.environ.get("CHESS_CLEAR_SHIFT_MM", "3")) / 1000
 RETRY_STEP_M = 0.003
 
 
+RANK_CORR_FILE = HUB / "chess_rank_correction.json"   # correccion por FILA (adelantar a lo largo de la columna y bajar)
+
+
+def load_rank_correction() -> dict[int, tuple[float, float]]:
+    """{fila: (adelantar_m, bajar_m)} medida con `rank-probe`. Adelantar = a lo largo de la columna hacia la fila 8;
+    bajar = la punta mas abajo (dz negativo). Con el brazo estirado (filas lejanas) cede y la punta queda alta/corta."""
+    if not RANK_CORR_FILE.exists():
+        return {}
+    d = json.loads(RANK_CORR_FILE.read_text()).get("por_fila", {})
+    return {int(r): (v["adelantar_mm"] / 1000, v["bajar_mm"] / 1000) for r, v in d.items()}
+
+
+def rank_correction(table: dict[int, tuple[float, float]], rank: int) -> tuple[float, float, str]:
+    """Correccion de una fila: la medida, o interpolada entre las dos filas medidas mas cercanas. Fuera del rango medido
+    no se extrapola (0, 0)."""
+    if rank in table:
+        return (*table[rank], "medida")
+    lo = [r for r in table if r < rank]
+    hi = [r for r in table if r > rank]
+    if not lo or not hi:
+        return 0.0, 0.0, "sin medir"
+    a, b = max(lo), min(hi)
+    t = (rank - a) / (b - a)
+    return (table[a][0] + t * (table[b][0] - table[a][0]), table[a][1] + t * (table[b][1] - table[a][1]), f"interpolada {a}-{b}")
+
+
+def save_rank_correction(rank: int, along_m: float, down_m: float, detalle: dict) -> None:
+    d = json.loads(RANK_CORR_FILE.read_text()) if RANK_CORR_FILE.exists() else {}
+    d.setdefault("por_fila", {})[str(rank)] = {"adelantar_mm": round(along_m * 1000, 1), "bajar_mm": round(down_m * 1000, 1),
+                                               "fecha": time.strftime("%Y-%m-%d %H:%M"), **detalle}
+    RANK_CORR_FILE.write_text(json.dumps(d, indent=2))
+
+
 def square_offsets() -> dict[str, list[float]]:
     """Desplazamiento (dx, dy) en metros que ha funcionado en cada casilla (lo aprende pick_place)."""
     if not GRASP_OFFSET_FILE.exists():
@@ -119,10 +153,29 @@ def load_home() -> np.ndarray | None:
 
 # --------------------------------------------------------------------------- plan (sin hardware)
 class Planner:
-    def __init__(self, kin: Kin | None = None, offset: np.ndarray | None = None):
+    def __init__(self, kin: Kin | None = None, offset: np.ndarray | None = None, rank_corr: bool = True):
         self.kin = kin or Kin()
         self.offset = load_grasp_offset() if offset is None else np.asarray(offset, float)
         self.board_bounds = self._board_bounds()
+        self.rank_table = load_rank_correction() if rank_corr else {}
+
+    def board_frame(self, xy) -> tuple[str | None, np.ndarray]:
+        """Casilla mas cercana (si esta a < 1,5 cm) y vector unitario de su columna (fila 1 -> 8) en xy del robot."""
+        sqs = self.kin.squares
+        name = min(sqs, key=lambda s: np.hypot(*(np.array(sqs[s]) - np.asarray(xy))))
+        if np.hypot(*(np.array(sqs[name]) - np.asarray(xy))) > 0.015:
+            return None, np.array([1.0, 0.0])
+        u = np.array(sqs[name[0] + "8"]) - np.array(sqs[name[0] + "1"])
+        return name, u / np.linalg.norm(u)
+
+    def corrected(self, xy, dz: float) -> tuple[tuple[float, float], float, str]:
+        """Aplica la correccion de la fila: adelanta a lo largo de la columna y baja la punta."""
+        sq, u = self.board_frame(xy)
+        if sq is None or not self.rank_table:
+            return (float(xy[0]), float(xy[1])), dz, "sin correccion de fila"
+        along, down, why = rank_correction(self.rank_table, int(sq[1]))
+        return (float(xy[0] + along * u[0]), float(xy[1] + along * u[1])), dz - down, \
+            f"fila {sq[1]} ({why}): +{along * 1000:.1f} mm columna, -{down * 1000:.1f} mm altura"
 
     @staticmethod
     def _board_bounds() -> tuple[float, float, float]:
@@ -138,10 +191,12 @@ class Planner:
         src_xy = (src_xy[0] + o[0], src_xy[1] + o[1])
         dst_xy = (dst_xy[0] + o[0], dst_xy[1] + o[1])
         g = GRASP_DZ[piece_type] + o[2]
-        s_grasp = self.kin.solve_xy(src_xy, g)
-        s_above = self.kin.solve_xy(src_xy, g + APPROACH_ABOVE, k_hint=s_grasp["k"]) if s_grasp["joints"] else None
-        d_place = self.kin.solve_xy(dst_xy, g + PLACE_EXTRA)
-        d_above = self.kin.solve_xy(dst_xy, g + PLACE_EXTRA + APPROACH_ABOVE, k_hint=d_place["k"]) if d_place["joints"] else None
+        src_xy, g_src, self.last_src_corr = self.corrected(src_xy, g)
+        dst_xy, g_dst, self.last_dst_corr = self.corrected(dst_xy, g)
+        s_grasp = self.kin.solve_xy(src_xy, g_src)
+        s_above = self.kin.solve_xy(src_xy, g_src + APPROACH_ABOVE, k_hint=s_grasp["k"]) if s_grasp["joints"] else None
+        d_place = self.kin.solve_xy(dst_xy, g_dst + PLACE_EXTRA)
+        d_above = self.kin.solve_xy(dst_xy, g_dst + PLACE_EXTRA + APPROACH_ABOVE, k_hint=d_place["k"]) if d_place["joints"] else None
         wp = []
         op = GRIP_APPROACH[piece_type]
 
@@ -279,7 +334,10 @@ class Arm:
         self.goto(s2, check_grip=check_grip)
         self.goto(target, check_grip=check_grip)
 
-    FINE_TOL = float(os.environ.get("CHESS_FINE_TOL", "0.7"))
+    # 0,7 grados ~ 1,8-3,4 mm en la punta (modelo, filas 2-6). 0,3 grados quita ~1-1,5 mm; el limite real lo ponen la zona
+    # muerta del servo (1 paso = 0,088 grados) y la holgura. Si no llega, goto_fine devuelve el error que queda (no falla).
+    FINE_TOL = float(os.environ.get("CHESS_FINE_TOL", "0.3"))
+    FINE_SECONDS = float(os.environ.get("CHESS_FINE_SECONDS", "4"))
 
     def goto_fine(self, target6, check_grip: bool = True) -> float:
         """Posicionado fino para bajar al agarre o al soltado: primero goto normal y luego afina hasta FINE_TOL grados en
@@ -287,7 +345,7 @@ class Arm:
         target = np.asarray(target6, float)
         self.goto(target, check_grip=check_grip)
         bias = np.zeros(4)
-        for _ in range(int(HZ * 3)):
+        for _ in range(int(HZ * self.FINE_SECONDS)):
             cur = self.joints()
             d = target[:4] - cur[:4]
             if np.abs(d).max() < self.FINE_TOL:
@@ -461,10 +519,58 @@ class IKExecutor:
         self._arm: Arm | None = None
         self._act: ACTWindow | None = None
         self.occupied: set[str] | None = None   # casillas ocupadas (set_board); None = no se sabe, sin desplazamiento
+        self.board: chess.Board | None = None
+        self._wcam: WR.WristCam | None = None
+
+    def _hover_q(self, xy, piece_type: int, roll: float, op: float) -> np.ndarray | None:
+        """Pose con la punta HOVER_M por encima de la cabeza de la pieza en xy (con offset global y correccion de fila)."""
+        pl = self.planner
+        o = pl.offset
+        xy2, z, _ = pl.corrected((xy[0] + o[0], xy[1] + o[1]), PIECE_HEIGHT[piece_type] + WR.HOVER_M + o[2])
+        sol = pl.kin.solve_xy(xy2, z)
+        return None if sol["joints"] is None else np.array([*sol["joints"], roll, op], float)
+
+    def wrist_ref_key(self, sq: str, piece_type: int) -> str:
+        color = "w"
+        if self.board is not None and self.board.piece_at(chess.parse_square(sq)) is not None:
+            color = "w" if self.board.piece_at(chess.parse_square(sq)).color == chess.WHITE else "b"
+        return WR.ref_key(color, chess.piece_symbol(piece_type))
+
+    def wrist_measure(self, arm: "Arm", sq: str, xy, piece_type: int, roll: float, op: float) -> dict:
+        """Punto 2: mide con la camara de la muneca donde esta la pieza respecto a los dedos (ver hub/chess_wrist.py).
+        Deja el brazo 1 cm por encima de la pieza (desplazado PROBE_MM en lateral). Devuelve la correccion en metros (xy)."""
+        key = self.wrist_ref_key(sq, piece_type)
+        ref = WR.load_ref(key)
+        if ref is None:
+            return {"ok": False, "motivo": f"sin referencia {key} (haz `wrist-ref` en una casilla que agarre bien)"}
+        u, w = self._file_axes(sq)
+        P = WR.PROBE_MM / 1000
+        pts, scores = [], []
+        for i, off in enumerate([np.zeros(2), P * u, P * w]):
+            q = self._hover_q((xy[0] + off[0], xy[1] + off[1]), piece_type, roll, op)
+            if q is None:
+                return {"ok": False, "motivo": "sin solucion IK 1 cm por encima"}
+            err = arm.goto_fine(q)
+            time.sleep(0.3)
+            img = self._wcam.grab()
+            cv2.imwrite(str(HUB / "frames" / "agarre" / f"muneca_{sq}_{i}.jpg"), img)
+            p, sc = WR.locate(img, ref)
+            pts.append(p)
+            scores.append(round(sc, 2))
+            if sc < WR.MIN_SCORE:
+                return {"ok": False, "motivo": f"la pieza no se reconoce en la foto {i} (coincidencia {sc:.2f} < {WR.MIN_SCORE})",
+                        "coincidencias": scores, "clave": key}
+        r = WR.solve_correction(pts[0], pts[1], pts[2], ref[1]["pixel"])
+        r.update({"clave": key, "coincidencias": scores, "pixel_pieza": np.round(pts[0], 1).tolist(), "pixel_ref": ref[1]["pixel"]})
+        if r["ok"]:
+            d = r["mm"]
+            r["xy_m"] = (np.array(d[0]) * u + np.array(d[1]) * w) / 1000
+        return r
 
     def set_board(self, board: chess.Board) -> None:
         """Ocupacion del tablero ANTES de la jugada. pick_place la actualiza tras cada paso que sale bien."""
         self.occupied = {chess.square_name(sq) for sq in board.piece_map()}
+        self.board = board.copy()
 
     def _square_at(self, xy, tol: float = 0.006) -> str | None:
         sqs = self.planner.kin.squares
@@ -531,6 +637,7 @@ class IKExecutor:
         src_shift, src_why = self.clear_shift(src_sq)
         print(f"  [vecinas] origen {src_sq}: {src_why} | destino {dst_sq}: {dst_why}", flush=True)
         wp = self.planner.waypoints(src_xy, dst_xy, piece_type, home6[:4])
+        print(f"  [fila] origen: {self.planner.last_src_corr} | destino: {self.planner.last_dst_corr}", flush=True)
         if not self.planner.report(label, wp):
             raise RuntimeError("el plan tiene waypoints sin solucion: no se mueve")
         if any(w["margin"] is not None and w["margin"] < 1.0 for w in wp):
@@ -573,6 +680,18 @@ class IKExecutor:
             info["act"] = self._act.run(arm, wp[1]["joints"], wp[2]["joints"], self.seconds)
         # Agarre con reintentos: si cierra en vacio, prueba desplazamientos de 3 mm (empieza por el aprendido en esa casilla).
         tries = self._grasp_tries(src_sq, src_shift, square_offsets().get(src_sq) if src_sq else None)
+        if WR.MODE != "off" and src_sq:
+            self._wcam = self._wcam or WR.WristCam(CFG.WRIST_CAM)
+            wm = self.wrist_measure(arm, src_sq, src_xy, piece_type, roll, op)
+            info["muneca"] = {k: (np.round(v, 4).tolist() if isinstance(v, np.ndarray) else v) for k, v in wm.items()}
+            if wm["ok"]:
+                print(f"  [muneca] pieza a {wm['mm'][0]:+.1f} mm (columna), {wm['mm'][1]:+.1f} mm (lateral) del centro de los dedos"
+                      f" | modo {WR.MODE}", flush=True)
+                if WR.MODE == "correct":
+                    m = (round(float(wm["xy_m"][0]), 4), round(float(wm["xy_m"][1]), 4))
+                    tries = [m] + [t for t in tries if np.hypot(t[0] - m[0], t[1] - m[1]) > 0.0015]
+            else:
+                print(f"  [muneca] sin medida: {wm['motivo']}", flush=True)
         held, intentos = False, []
         for k, (dx, dy) in enumerate(tries[:int(os.environ.get("CHESS_GRASP_TRIES", "6"))]):
             src2 = (src_xy[0] + dx, src_xy[1] + dy)
@@ -820,6 +939,133 @@ def cmd_grasp_probe(a) -> int:
     return 0
 
 
+def cmd_rank_probe(a) -> int:
+    """Mide la correccion de UNA fila (punto 1, 21-nov): con un peon en la casilla (por defecto columna e de esa fila),
+    prueba una rejilla de (adelantar a lo largo de la columna, bajar), sin aplicar la tabla de filas. En cada punto baja
+    con la pinza a la apertura del peon, cierra suave, mira si hay pieza, suelta y sube. Guarda la media de los que agarran
+    en hub/chess_rank_correction.json (--save). La pieza no se levanta. Empieza y acaba en el origen."""
+    rank = int(a.rank)
+    sq = (a.square or f"e{rank}").lower()
+    if int(sq[1]) != rank:
+        print(f"{sq} no es de la fila {rank}")
+        return 1
+    home = load_home()
+    if home is None:
+        print("falta hub/chess_home.json")
+        return 1
+    alongs = [float(v) / 1000 for v in a.along.split(",")]
+    downs = [float(v) / 1000 for v in a.down.split(",")]
+    grid = sorted(((al, dn) for al in alongs for dn in downs), key=lambda o: (abs(o[0]) + abs(o[1]), o))
+    pl0 = Planner(rank_corr=False)
+    xy0 = pl0.kin.squares[sq]
+    _, u = pl0.board_frame(xy0)
+    op = GRIP_APPROACH[chess.PAWN]
+    print(f"rank-probe fila {rank} en {sq} | columna u={np.round(u, 3).tolist()} | apertura {op} (~{gap_cm(op):.1f} cm) | "
+          f"{len(grid)} pruebas | bajada fina {Arm.FINE_TOL} grados", flush=True)
+    arm = Arm()
+    roll = arm.joints()[4]
+    if np.abs(arm.joints()[:4] - home[:4]).max() > 8:
+        print("el brazo no esta en el origen; no se mueve")
+        return 1
+    results = []
+    for al, dn in grid:
+        pl = Planner(offset=pl0.offset + np.array([al * u[0], al * u[1], -dn]), rank_corr=False)
+        wp = pl.waypoints(xy0, xy0, chess.PAWN, home[:4])
+        if any(w["joints"] is None for w in wp[1:3]):
+            print(f"  adelantar {al * 1000:+.0f} mm, bajar {dn * 1000:.0f} mm: sin solucion IK", flush=True)
+            continue
+        arm.goto(np.array([*wp[1]["joints"], roll, op]))
+        err = arm.goto_fine(np.array([*wp[2]["joints"], roll, op]))
+        g, held = arm.grasp()
+        arm.release()
+        arm.lift(np.array([*wp[1]["joints"], roll, op]))
+        results.append({"adelantar_mm": round(al * 1000, 1), "bajar_mm": round(dn * 1000, 1), "pinza": round(g, 1),
+                        "agarra": bool(held), "error_deg": round(err, 2)})
+        print(f"  adelantar {al * 1000:+.0f} mm, bajar {dn * 1000:.0f} mm -> pinza {g:.1f} {'AGARRA' if held else 'vacia'} "
+              f"(bajada {err:.2f} grados)", flush=True)
+        if a.stop_first and held:
+            break
+    arm.goto(np.array([*home[:4], roll, op]))
+    good = [r for r in results if r["agarra"]]
+    if not good:
+        print("Ninguna prueba agarra: amplia --along/--down o revisa que el peon este en la casilla.")
+        return 2
+    al_m = float(np.mean([r["adelantar_mm"] for r in good])) / 1000
+    dn_m = float(np.mean([r["bajar_mm"] for r in good])) / 1000
+    print(f"correccion fila {rank}: adelantar {al_m * 1000:.1f} mm, bajar {dn_m * 1000:.1f} mm ({len(good)}/{len(results)} agarran)")
+    if a.save:
+        save_rank_correction(rank, al_m, dn_m, {"casilla": sq, "aciertos": f"{len(good)}/{len(results)}", "pruebas": results})
+        print("guardado", RANK_CORR_FILE)
+    return 0
+
+
+def _wrist_session(sq: str):
+    """Brazo en el origen -> encima de la casilla. Devuelve (ejecutor, brazo, roll, apertura, waypoints) o None."""
+    home = load_home()
+    if home is None:
+        print("falta hub/chess_home.json")
+        return None
+    ex = IKExecutor(grasp="scripted")
+    ex.set_board(chess.Board(game_fen()))
+    xy = ex.planner.kin.squares[sq]
+    wp = ex.planner.waypoints(xy, xy, chess.PAWN, home[:4])
+    arm = ex._arm = Arm()
+    if np.abs(arm.joints()[:4] - home[:4]).max() > 8:
+        print("el brazo no esta en el origen; no se mueve")
+        return None
+    roll, op = arm.joints()[4], GRIP_APPROACH[chess.PAWN]
+    arm.goto(np.array([*wp[1]["joints"], roll, op]))
+    return ex, arm, roll, op, wp, xy, home
+
+
+def cmd_wrist_ref(a) -> int:
+    """Guarda la referencia de la camara de la muneca: 1 cm por encima de un peon que AGARRA BIEN en esa casilla (usa el
+    desplazamiento aprendido de la casilla). Mira despues hub/wrist_ref/<clave>_anotada.jpg: el recuadro debe enmarcar la
+    cabeza del peon entre los dedos; si no, repite con --roi x0,y0,x1,y1 (fracciones)."""
+    sq = a.square.lower()
+    s = _wrist_session(sq)
+    if s is None:
+        return 1
+    ex, arm, roll, op, wp, xy, home = s
+    learned = square_offsets().get(sq) or [0.0, 0.0]
+    q = ex._hover_q((xy[0] + learned[0], xy[1] + learned[1]), chess.PAWN, roll, op)
+    err = arm.goto_fine(q)
+    time.sleep(0.5)
+    img = WR.WristCam(CFG.WRIST_CAM).grab()
+    roi = tuple(float(v) for v in a.roi.split(",")) if a.roi else WR.DEFAULT_ROI
+    key = ex.wrist_ref_key(sq, chess.PAWN)
+    meta = WR.save_ref(img, key, sq, roi)
+    print(f"referencia {key} en {sq} (desplazamiento {np.round(np.array(learned) * 1000, 1).tolist()} mm, bajada {err:.2f} grados): {meta}")
+    print("revisa", WR.REF_DIR / f"{key}_anotada.jpg")
+    arm.lift(np.array([*wp[1]["joints"], roll, op]))
+    arm.goto(np.array([*home[:4], roll, op]))
+    return 0
+
+
+def cmd_wrist_measure(a) -> int:
+    """Solo mide (no agarra): error de la pieza respecto a los dedos en una casilla, con la camara de la muneca."""
+    sq = a.square.lower()
+    s = _wrist_session(sq)
+    if s is None:
+        return 1
+    ex, arm, roll, op, wp, xy, home = s
+    ex._wcam = WR.WristCam(CFG.WRIST_CAM)
+    r = ex.wrist_measure(arm, sq, xy, chess.PAWN, roll, op)
+    print(json.dumps({k: (np.round(v, 4).tolist() if isinstance(v, np.ndarray) else v) for k, v in r.items()}, indent=2))
+    arm.lift(np.array([*wp[1]["joints"], roll, op]))
+    arm.goto(np.array([*home[:4], roll, op]))
+    return 0 if r.get("ok") else 2
+
+
+def cmd_rank_table(a) -> int:
+    """Muestra la correccion que se aplica a cada fila (medida, interpolada o sin medir). No mueve nada."""
+    t = load_rank_correction()
+    for r in range(1, 9):
+        al, dn, why = rank_correction(t, r)
+        print(f"  fila {r}: adelantar {al * 1000:+.1f} mm, bajar {dn * 1000:.1f} mm  ({why})")
+    return 0
+
+
 def game_fen() -> str:
     """FEN de la partida guardada (CHESS_GAME_FILE); posicion inicial si no hay partida."""
     p = Path(CFG.GAME_FILE)
@@ -850,10 +1096,16 @@ def main() -> int:
     p.add_argument("--dz", type=float, default=0.12); p.add_argument("--save", action="store_true")
     p = sub.add_parser("grasp-probe"); p.add_argument("--square", default="e2"); p.add_argument("--step", type=float, default=0.008)
     p.add_argument("--dz", default="0.0"); p.add_argument("--save", action="store_true"); p.add_argument("--from-saved", action="store_true")
+    p = sub.add_parser("rank-probe"); p.add_argument("--rank", required=True); p.add_argument("--square")
+    p.add_argument("--along", default="0,3,-3,6"); p.add_argument("--down", default="0,3")
+    p.add_argument("--save", action="store_true"); p.add_argument("--stop-first", action="store_true")
+    sub.add_parser("rank-table")
+    p = sub.add_parser("wrist-ref"); p.add_argument("--square", default="e2"); p.add_argument("--roi")
+    p = sub.add_parser("wrist-measure"); p.add_argument("--square", default="e4")
     p = sub.add_parser("run"); p.add_argument("uci"); p.add_argument("--fen"); p.add_argument("--grasp", choices=["act", "scripted"], default="act")
     p.add_argument("--seconds", type=float, default=8.0); p.add_argument("--checkpoint", default=str(DEFAULT_ACT))
     a = ap.parse_args()
-    return {"plan": cmd_plan, "act-offline": cmd_act_offline, "set-home": cmd_set_home, "test-grasp": cmd_test_grasp, "make-home": cmd_make_home, "grasp-probe": cmd_grasp_probe, "run": cmd_run}[a.cmd](a)
+    return {"plan": cmd_plan, "act-offline": cmd_act_offline, "set-home": cmd_set_home, "test-grasp": cmd_test_grasp, "make-home": cmd_make_home, "grasp-probe": cmd_grasp_probe, "rank-probe": cmd_rank_probe, "rank-table": cmd_rank_table, "wrist-ref": cmd_wrist_ref, "wrist-measure": cmd_wrist_measure, "run": cmd_run}[a.cmd](a)
 
 
 if __name__ == "__main__":

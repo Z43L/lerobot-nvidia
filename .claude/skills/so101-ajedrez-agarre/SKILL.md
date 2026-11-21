@@ -61,3 +61,13 @@ Variables: `CHESS_GRIP_OPEN` (fuerza la apertura de acercamiento), `CHESS_GRIP_R
 1. Brazo en el retorno. `test-grasp --square X --go` y leer `pinza_cerrada`, `agarrada`, `error_bajada_deg`.
 2. Si `agarrada` es false: `grasp-probe` en esa casilla, con la pieza recolocada.
 3. Mirar en directo: pose de agarre con la pinza abierta y fotos de las cámaras 0 (lateral) y 2 (muñeca). La cenital (1) queda tapada por el brazo en el retorno: gira `shoulder_pan` a -55 con `arm_move` para ver el tablero.
+
+## Correcciones en coordenadas del tablero (21-nov, noche; SIN probar con el brazo)
+
+1. **Corrección por fila** (`hub/chess_rank_correction.json`): adelantar a lo largo de la columna y bajar la punta, por fila. `Planner` la aplica al origen y al destino; entre filas medidas interpola, fuera no extrapola.
+   `chess_ik_exec.py rank-probe --rank 4 [--square e4] [--along=0,3,-3,6] [--down=0,3] [--save] [--stop-first]` (peón en la casilla, brazo en el origen; 8 cierres sin levantar). `rank-table` muestra la tabla.
+2. **Cámara de la muñeca** (`hub/chess_wrist.py`): foto 1 cm por encima de la pieza + dos fotos tras mover 3 mm (columna y lateral) → J en píxeles/mm en esa pose → corrección = J⁻¹(pixel_ref − pixel_pieza), máx. 6 mm.
+   - Referencia: `wrist-ref --square e2` en una casilla que agarre bien; revisa `hub/wrist_ref/wP_anotada.jpg` (el recuadro debe enmarcar el peón entre las puntas, sin los dedos; si no, `--roi x0,y0,x1,y1` en fracciones).
+   - Medir sin agarrar: `wrist-measure --square e4`. Fotos en `hub/frames/agarre/muneca_<casilla>_{0,1,2}.jpg`.
+   - `CHESS_WRIST=measure` (defecto: mide y lo apunta), `correct` (pone la medida como primer intento), `off`.
+3. **Bajada fina** `CHESS_FINE_TOL`=0,3° (antes 0,7°), hasta `CHESS_FINE_SECONDS`=4 s; si no llega, sigue y devuelve el error.

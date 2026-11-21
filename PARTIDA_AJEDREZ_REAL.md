@@ -71,3 +71,10 @@ Skills: `so101-ajedrez-partida-real` (flujo), `so101-ajedrez-camaras-yolo` (visi
 - 3. e5 (robot) NO ejecutada: e4 cerró en vacío 5 veces (centro, ±3 mm columna y lateral). Pinza abierta en la pose de agarre de e4: en la muñeca el peón parece entre los dedos; en la lateral el dedo delantero queda sobre la bisagra del tablero (filas 4/5). Fila 4 = brazo casi estirado (muñeca a 2,8° del tope, hombro 50°, carga 192): sospecha de que la punta queda más alta o más lejos de lo calculado. SIN MEDIR. Fotos `e4_agarre_*.jpg`.
 - Partida TERMINADA por el usuario: 1. e4 a5 2. d4 f5 (turno de blancas). Copia: `hub/chess_game.final_20261121_202208.json`. El historial marca las 4 jugadas como `who: robot` (a5 y f5 fueron del humano): fallo de `chess_commit`.
 - Balance del agarre de peones a 12: fila 2 → fila 4 OK (e2 centro, d2 +3 mm). Fila 4 no agarra. Pendiente: medir el agarre en la fila 4 con el brazo quieto en la pose y la persona mirando; umbral de pieza 4,5 demasiado justo (sujeta con 4,5–4,7).
+
+### 2026-11-21 (noche, 2): correcciones en coordenadas del tablero (rama `agarre-coordenadas-tablero`)
+- Punto 1: tabla por fila `hub/chess_rank_correction.json` (adelantar a lo largo de la columna y bajar), aplicada por `Planner` al origen y al destino por separado; filas sin medir entre dos medidas se interpolan, fuera no se extrapola. Medir: `chess_ik_exec.py rank-probe --rank 4 [--square e4] [--along=0,3,-3,6] [--down=0,3] [--save]`. Ver: `rank-table`.
+- Punto 3: bajada fina `CHESS_FINE_TOL` 0,7 → 0,3 grados, con hasta `CHESS_FINE_SECONDS`=4 s. Si no llega, sigue y devuelve el error.
+- Punto 2 (cámara de la muñeca): sin implementar.
+- Nada de esto está probado con el brazo.
+- Punto 2 implementado: `hub/chess_wrist.py` + `wrist-ref` / `wrist-measure`; en `pick_place` mide antes de los intentos (`CHESS_WRIST=measure` por defecto, `correct` para aplicar). Probado sin brazo: la plantilla recupera desplazamientos sintéticos exactos y la resolución de J da la corrección esperada. Entre las fotos reales de e2 a +3 mm y centro el peón solo se movió ~7 px (≈2,5 px/mm, o la pinza no se movió los 3 mm con tolerancia 0,7°). Sin referencia guardada todavía.
