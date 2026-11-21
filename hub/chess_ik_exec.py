@@ -52,7 +52,7 @@ BIAS_MAX = 3.0             # grados: sesgo maximo por articulacion
 GRIP_OPEN = 40.0            # apertura en el transito alto (ORIGEN). OJO: 40 = ~7,4 cm entre puntas, barre 2 casillas
 # Apertura al acercarse a una pieza: lo justo para que entre sin tocarla ni tocar las vecinas (usuario, 21-nov).
 # Pinza 0..100 = 140 grados de servo; dedo de 8,2 cm: hueco ~ 2*0.082*sin((v-1.8)*1.4/2 grados). 14 -> ~2,4 cm.
-GRIP_APPROACH = {chess.PAWN: 14.0, chess.ROOK: 16.0, chess.KNIGHT: 16.0, chess.BISHOP: 15.0, chess.QUEEN: 17.0, chess.KING: 17.0}
+GRIP_APPROACH = {chess.PAWN: 12.0, chess.ROOK: 16.0, chess.KNIGHT: 16.0, chess.BISHOP: 15.0, chess.QUEEN: 17.0, chess.KING: 17.0}
 if os.environ.get("CHESS_GRIP_OPEN"):
     GRIP_APPROACH = {k: float(os.environ["CHESS_GRIP_OPEN"]) for k in GRIP_APPROACH}
 
@@ -88,7 +88,12 @@ def load_grasp_offset() -> np.ndarray:
     return np.array([d.get("dx_m", 0.0), d.get("dy_m", 0.0), d.get("dz_m", 0.0)], float)
 
 
-RETRY_OFFSETS_MM = [(0, 0), (0, 3), (0, -3), (3, 0), (-3, 0), (3, 3), (-3, 3), (3, -3), (-3, -3)]
+RETRY_OFFSETS_MM = [(0, 0), (0, 3), (0, -3), (3, 0), (-3, 0), (3, 3), (-3, 3), (3, -3), (-3, -3)]  # (sin uso en pick_place)
+# 21-nov: los dedos cierran a lo largo de la COLUMNA (uno hacia la fila de delante, otro hacia la de detras). En d2 el dedo
+# de atras rozaba el rey de la fila 1 y cerraba en vacio. Si solo una de esas dos casillas esta ocupada, se agarra y se
+# suelta desplazado CLEAR_SHIFT hacia la libre. Reintentos: primero a lo largo de la columna, luego laterales.
+CLEAR_SHIFT_M = float(os.environ.get("CHESS_CLEAR_SHIFT_MM", "3")) / 1000
+RETRY_STEP_M = 0.003
 
 
 def square_offsets() -> dict[str, list[float]]:
@@ -256,6 +261,23 @@ class Arm:
             self.send(np.r_[cur[:5] + cmd, target[5]])   # pinza: orden absoluta (apretar = GRIP_HOLD_CMD)
             time.sleep(1 / HZ)
         raise RuntimeError("no converge al waypoint (carga, tope o colision): me paro")
+
+    LIFT_EXTRA = float(os.environ.get("CHESS_LIFT_EXTRA", "6"))
+
+    def lift(self, target6, check_grip: bool = True) -> None:
+        """Subir desde abajo por etapas (21-nov: el codo se quedaba 7 grados corto si subia a la vez que el hombro, sin
+        carga; subiendo antes el hombro el codo si llega). 1) hombro a objetivo - LIFT_EXTRA (menos = mas alto) con el resto
+        quieto; 2) codo y muneca al objetivo; 3) pose exacta."""
+        target = np.asarray(target6, float)
+        cur = self.joints()
+        s1 = cur.copy()
+        s1[1] = min(cur[1], target[1]) - self.LIFT_EXTRA
+        s1[5] = target[5]
+        self.goto(s1, check_grip=check_grip)
+        s2 = target.copy()
+        s2[1] = s1[1]
+        self.goto(s2, check_grip=check_grip)
+        self.goto(target, check_grip=check_grip)
 
     FINE_TOL = float(os.environ.get("CHESS_FINE_TOL", "0.7"))
 
@@ -438,6 +460,63 @@ class IKExecutor:
         self.planner = Planner()
         self._arm: Arm | None = None
         self._act: ACTWindow | None = None
+        self.occupied: set[str] | None = None   # casillas ocupadas (set_board); None = no se sabe, sin desplazamiento
+
+    def set_board(self, board: chess.Board) -> None:
+        """Ocupacion del tablero ANTES de la jugada. pick_place la actualiza tras cada paso que sale bien."""
+        self.occupied = {chess.square_name(sq) for sq in board.piece_map()}
+
+    def _square_at(self, xy, tol: float = 0.006) -> str | None:
+        sqs = self.planner.kin.squares
+        name = min(sqs, key=lambda s: np.hypot(*(np.array(sqs[s]) - np.asarray(xy))))
+        return name if np.hypot(*(np.array(sqs[name]) - np.asarray(xy))) < tol else None
+
+    def _file_axes(self, sq: str) -> tuple[np.ndarray, np.ndarray]:
+        """Vector unitario a lo largo de la columna (fila 1 -> 8) y el lateral, en xy del robot."""
+        sqs = self.planner.kin.squares
+        u = np.array(sqs[sq[0] + "8"]) - np.array(sqs[sq[0] + "1"])
+        u = u / np.linalg.norm(u)
+        return u, np.array([-u[1], u[0]])
+
+    def clear_shift(self, sq: str | None, ignore: tuple = ()) -> tuple[np.ndarray, str]:
+        """Desplazamiento (m) hacia la casilla libre de la columna si solo una de las dos vecinas (delante/detras) esta ocupada."""
+        if sq is None or self.occupied is None:
+            return np.zeros(2), "sin datos del tablero"
+        r = int(sq[1])
+        back = f"{sq[0]}{r - 1}" if r > 1 else None
+        front = f"{sq[0]}{r + 1}" if r < 8 else None
+        occ_b = back is not None and back in self.occupied and back not in ignore
+        occ_f = front is not None and front in self.occupied and front not in ignore
+        if occ_b == occ_f:
+            return np.zeros(2), ("delante y detras ocupadas" if occ_b else "delante y detras libres") + ": centro"
+        u, _ = self._file_axes(sq)
+        sign = 1.0 if occ_b else -1.0
+        return sign * CLEAR_SHIFT_M * u, f"{back if occ_b else front} ocupada: {CLEAR_SHIFT_M * 1000:.0f} mm hacia {(front if occ_b else back) or 'el borde'}"
+
+    def _grasp_tries(self, sq: str | None, base: np.ndarray, learned) -> list[tuple[float, float]]:
+        """Orden de intentos (21-nov): 1) el desplazamiento que funciono la ultima vez en esa casilla (medido: e2 agarra en
+        el centro aunque el rey este detras; d2 solo a +3 mm); 2) hacia la vecina libre; 3) el centro, una vez; 4) mas lejos
+        de la vecina ocupada a lo largo de la columna (o +-3 mm si no hay ninguna); 5) laterales +-3 mm."""
+        if sq is None:
+            u, w = np.array([1.0, 0.0]), np.array([0.0, 1.0])
+        else:
+            u, w = self._file_axes(sq)
+        st = RETRY_STEP_M
+        along = float(base @ u)
+        cand = [np.asarray(learned, float)] if learned is not None else []
+        cand.append(base)
+        cand.append(np.zeros(2))
+        if abs(along) > 1e-6:            # una vecina ocupada: alejarse mas de ella, nunca acercarse
+            cand.append(base + np.sign(along) * st * u)
+        else:
+            cand += [base + st * u, base - st * u]
+        cand += [base + st * w, base - st * w]
+        out: list[tuple[float, float]] = []
+        for c in cand:
+            t = (round(float(c[0]), 4), round(float(c[1]), 4))
+            if all(np.hypot(t[0] - o[0], t[1] - o[1]) > 0.0015 for o in out):   # casi iguales (<1,5 mm) = el mismo intento
+                out.append(t)
+        return out
 
     def pick_place(self, label, piece_type, src_xy, dst_xy) -> dict:
         ok, why = motion_permission()
@@ -446,6 +525,11 @@ class IKExecutor:
         home6 = load_home()
         if home6 is None:
             raise RuntimeError("Falta hub/chess_home.json (pose de origen): `chess_ik_exec.py set-home` con el brazo colocado.")
+        src_sq, dst_sq = self._square_at(src_xy), self._square_at(dst_xy)
+        dst_shift, dst_why = self.clear_shift(dst_sq, ignore=(src_sq,))
+        dst_xy = (dst_xy[0] + dst_shift[0], dst_xy[1] + dst_shift[1])
+        src_shift, src_why = self.clear_shift(src_sq)
+        print(f"  [vecinas] origen {src_sq}: {src_why} | destino {dst_sq}: {dst_why}", flush=True)
         wp = self.planner.waypoints(src_xy, dst_xy, piece_type, home6[:4])
         if not self.planner.report(label, wp):
             raise RuntimeError("el plan tiene waypoints sin solucion: no se mueve")
@@ -469,11 +553,13 @@ class IKExecutor:
             return np.array([*w["joints"], roll, g], float)
 
         op = GRIP_APPROACH[piece_type]                       # apertura justa para esta pieza
-        info: dict = {"accion": label, "apertura": op, "hueco_cm": round(gap_cm(op), 1), "offset_m": [round(float(v), 4) for v in self.planner.offset]}
+        info: dict = {"accion": label, "apertura": op, "hueco_cm": round(gap_cm(op), 1), "offset_m": [round(float(v), 4) for v in self.planner.offset],
+                      "vecinas_origen": src_why, "vecinas_destino": dst_why}
 
         def back_home(motivo: str) -> dict:
+            print(f"  [fallo] {motivo}", flush=True)
             arm.release()
-            arm.goto(q6(wp[3], op))
+            arm.lift(q6(wp[3], op))
             arm.goto(q6(wp[7], op))
             return {**info, "ok": False, "motivo": motivo}
 
@@ -486,9 +572,7 @@ class IKExecutor:
             self._act = self._act or ACTWindow(self.checkpoint)
             info["act"] = self._act.run(arm, wp[1]["joints"], wp[2]["joints"], self.seconds)
         # Agarre con reintentos: si cierra en vacio, prueba desplazamientos de 3 mm (empieza por el aprendido en esa casilla).
-        src_sq = min(self.planner.kin.squares, key=lambda s: np.hypot(*(np.array(self.planner.kin.squares[s]) - src_xy)))
-        learned = square_offsets().get(src_sq)
-        tries = ([tuple(learned)] if learned else []) + [(dx / 1000, dy / 1000) for dx, dy in RETRY_OFFSETS_MM]
+        tries = self._grasp_tries(src_sq, src_shift, square_offsets().get(src_sq) if src_sq else None)
         held, intentos = False, []
         for k, (dx, dy) in enumerate(tries[:int(os.environ.get("CHESS_GRASP_TRIES", "6"))]):
             src2 = (src_xy[0] + dx, src_xy[1] + dy)
@@ -496,13 +580,28 @@ class IKExecutor:
             if w[1]["joints"] is None or w[2]["joints"] is None:
                 continue
             if k:
-                arm.goto(q6(w[1], op))                     # sube y se recoloca encima con el nuevo desplazamiento
-            err = arm.goto_fine(q6(w[2], op))              # bajar (fino)
+                arm.lift(q6(w[1], op))                     # sube y se recoloca encima con el nuevo desplazamiento
+            try:
+                err = arm.goto_fine(q6(w[2], op))          # bajar (fino)
+            except RuntimeError as e:
+                if "no converge" not in str(e):
+                    raise
+                # Algo frena la bajada (la pinza toca la pieza o una vecina): no empujar. Sube y vuelve al ORIGEN.
+                info["casilla_origen"] = src_sq
+                info["intentos"] = intentos + [{"dxy_mm": [round(dx * 1000, 1), round(dy * 1000, 1)], "choque": True,
+                                               "articulaciones": np.round(arm.joints(), 1).tolist()}]
+                arm.lift(q6(w[1], op), check_grip=False)
+                arm.goto(q6(wp[7], op), check_grip=False)
+                return {**info, "ok": False, "motivo": f"choque al bajar a {src_sq} (desplazamiento {dx * 1000:+.0f},{dy * 1000:+.0f} mm): "
+                        "subo y vuelvo al origen sin forzar. Mira la foto de la muñeca y recoloca la pieza."}
             grip, held = arm.grasp()                       # cierre suave, detecta contacto
             intentos.append({"dxy_mm": [round(dx * 1000, 1), round(dy * 1000, 1)], "pinza": round(grip, 1), "error_deg": round(err, 2)})
+            print(f"  [agarre {k + 1}] desplazamiento {dx * 1000:+.0f},{dy * 1000:+.0f} mm | bajada {err:.2f} grados | "
+                  f"pinza {grip:.1f} | {'AGARRADA' if held else 'vacia'}", flush=True)
             if held:
                 wp[1], wp[2], wp[3] = w[1], w[2], w[3]
-                save_square_offset(src_sq, (dx, dy))
+                if src_sq:
+                    save_square_offset(src_sq, (dx, dy))
                 break
             arm.release()
         info["casilla_origen"], info["intentos"] = src_sq, intentos
@@ -511,18 +610,25 @@ class IKExecutor:
         if not held:
             return back_home(f"pinza cerrada en vacio ({grip:.1f} <= {GRIP_EMPTY_MAX}): la pieza no estaba entre los dedos. "
                              "Recalibra el agarre con `grasp-probe`.")
-        arm.goto(np.array([*wp[3]["joints"], roll, hold]), check_grip=False)   # subir apretando
+        arm.lift(np.array([*wp[3]["joints"], roll, hold]), check_grip=False)   # subir apretando
         grip = float(arm.joints()[5])
         info["pinza_tras_subir"] = round(grip, 1)
+        print(f"  [subida] pinza {grip:.1f} ({'sujeta' if grip > GRIP_EMPTY_MAX else 'SE SOLTO'})", flush=True)
         if grip <= GRIP_EMPTY_MAX:
             return back_home(f"la pieza se solto al subir (pinza {grip:.1f})")
         arm.goto(np.array([*wp[4]["joints"], roll, hold]), check_grip=False)
         arm.goto(np.array([*wp[5]["joints"], roll, hold]), check_grip=False)
         arm.goto_fine(np.array([*wp[5]["joints"], roll, hold]), check_grip=False)
         info["pinza_antes_de_soltar"] = round(float(arm.joints()[5]), 1)
+        print(f"  [destino] pinza antes de soltar {info['pinza_antes_de_soltar']}", flush=True)
         arm.release()                                      # soltar
-        arm.goto(q6(wp[6], op))
+        print("  [soltado] subo y vuelvo al origen", flush=True)
+        arm.lift(q6(wp[6], op))
         arm.goto(q6(wp[7], op))                     # ORIGEN (punto de retorno)
+        if self.occupied is not None:
+            self.occupied.discard(src_sq)
+            if dst_sq:
+                self.occupied.add(dst_sq)
         return {**info, "ok": True}
 
 
@@ -608,6 +714,7 @@ def cmd_test_grasp(a) -> int:
         print("NO se ejecuta: resuelve los bloqueos.")
         return 1
     ex = IKExecutor(grasp="scripted")
+    ex.set_board(chess.Board(game_fen()))
     r = ex.pick_place(f"test {sq}->{sq}", chess.PAWN, xy, xy)
     print(json.dumps(r, indent=2, default=float))
     return 0 if r.get("ok") else 3
@@ -713,9 +820,18 @@ def cmd_grasp_probe(a) -> int:
     return 0
 
 
+def game_fen() -> str:
+    """FEN de la partida guardada (CHESS_GAME_FILE); posicion inicial si no hay partida."""
+    p = Path(CFG.GAME_FILE)
+    return json.loads(p.read_text()).get("fen", chess.STARTING_FEN) if p.exists() else chess.STARTING_FEN
+
+
 def cmd_run(a) -> int:
+    fen = a.fen or game_fen()
+    print(f"Posicion de partida: {fen}", flush=True)
     ex = IKExecutor(grasp=a.grasp, seconds=a.seconds, checkpoint=Path(a.checkpoint))
-    for s in _steps_for(a.uci, a.fen):
+    ex.set_board(chess.Board(fen))
+    for s in _steps_for(a.uci, fen):
         r = ex.pick_place(s["label"], s["piece"], s["src_xy"], s["dst_xy"])
         print(json.dumps(r, indent=2, default=float))
         if not r.get("ok"):

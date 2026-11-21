@@ -214,6 +214,8 @@ class RealChessBackend:
     # ------------------------------------------------------------------ ejecución
     def execute(self, move: chess.Move, board_before: chess.Board) -> dict:
         steps = self.plan(move, board_before)
+        if hasattr(self.executor, "set_board"):   # ejecutor real: aparta los dedos de las vecinas ocupadas
+            self.executor.set_board(board_before)
         results = [self.executor.pick_place(s["label"], s["piece"], s["src_xy"], s["dst_xy"]) for s in steps]
         after = board_before.copy()
         after.push(move)
