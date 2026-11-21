@@ -6,7 +6,7 @@ Los puertos NO tienen defecto: si faltan, el módulo que los necesita lo dice.
   Cámaras:   CHESS_YOLO_CAM (o SO101_TOP_CAM), CHESS_WRIST_CAM (o SO101_WRIST_CAM)
   Visión:    CHESS_BOARD_GEOMETRY (esquinas en píxeles), CHESS_YOLO_WEIGHTS
   ACT:       CHESS_ACT_CHECKPOINT (genérico, sin objetivo), CHESS_ACT_GOAL_CHECKPOINT (con objetivo), ACT_HF_30K, ACT_LOCAL_25K
-  Brazo:     SO101_FOLLOWER_PORT, SO101_FOLLOWER_ID, CHESS_STEP_DEG (grados por paso), CHESS_HZ
+  Brazo:     SO101_FOLLOWER_PORT, SO101_FOLLOWER_ID, CHESS_STEP_DEG (grados por paso), CHESS_HZ, CHESS_GRIP_OPEN
   Partida:   CHESS_GAME_FILE
 """
 
@@ -61,6 +61,9 @@ ACT_MODELS: dict[str, Path] = {
 ACT_GENERIC_CKPT = (Path(os.environ["CHESS_ACT_CHECKPOINT"]) if os.environ.get("CHESS_ACT_CHECKPOINT")
                     else _first_existing(*ACT_MODELS.values(), ROOT / "modeloACT/checkpoints/last/pretrained_model"))
 ACT_GOAL_CKPT = Path(os.environ["CHESS_ACT_GOAL_CHECKPOINT"]) if os.environ.get("CHESS_ACT_GOAL_CHECKPOINT") else None
+
+# Apertura de la pinza (0-100) al acercarse a la pieza. SIN medir con piezas reales. El ACT entrenado vio como mucho ~32.
+GRIP_OPEN = float(os.environ.get("CHESS_GRIP_OPEN", "40"))
 
 MOTION_FILE = ROOT / "real" / ".motion_ok"
 

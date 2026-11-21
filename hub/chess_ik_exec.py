@@ -49,7 +49,7 @@ STEP_DEG = CFG.STEP_DEG   # tope = SO101_MAX_RELATIVE_TARGET (AGENTS.md: empezar
 HZ = CFG.HZ
 BIAS_KI = 0.25             # ganancia del sesgo integral (por tick)
 BIAS_MAX = 3.0             # grados: sesgo maximo por articulacion
-GRIP_OPEN = 40.0            # % de apertura de la pinza al acercarse (SIN medir con piezas reales)
+GRIP_OPEN = CFG.GRIP_OPEN   # % de apertura al acercarse (CHESS_GRIP_OPEN; SIN medir con piezas reales)
 GRIP_CLOSE_STEP = 1.5       # % por tick al cerrar
 APPROACH_ABOVE = 0.07       # m por encima de la altura de agarre (la punta queda por encima del rey en el transito)
 PLACE_EXTRA = 0.004         # m por encima del agarre al soltar
@@ -226,6 +226,23 @@ class Arm:
 
 
 # --------------------------------------------------------------------------- ACT confinado
+def trained_gripper_range(checkpoint: Path) -> tuple[float, float]:
+    """Rango de la pinza (observation.state) con el que se entrenó el ACT, leído de las estadísticas del checkpoint."""
+    from safetensors.torch import load_file
+
+    st = load_file(str(Path(checkpoint) / "policy_preprocessor_step_3_normalizer_processor.safetensors"))
+    return float(st["observation.state.min"][5]), float(st["observation.state.max"][5])
+
+
+def act_grip_problem(checkpoint: Path, grip_open: float = GRIP_OPEN, margin: float = 2.0) -> str | None:
+    """None si la apertura de aproximación está dentro de lo que el ACT vio al entrenar; si no, el motivo."""
+    lo, hi = trained_gripper_range(checkpoint)
+    if grip_open > hi + margin:
+        return (f"la pinza se acerca abierta a {grip_open:.0f} y el ACT solo vio aperturas de {lo:.1f} a {hi:.1f}: "
+                f"arrancaría fuera de su distribución. Usa CHESS_GRIP_OPEN <= {hi:.0f} o el agarre guionizado (ik-scripted).")
+    return None
+
+
 class ACTWindow:
     def __init__(self, checkpoint: Path = DEFAULT_ACT, device: str | None = None):
         from deploy_goal import load_policy
@@ -328,6 +345,9 @@ class IKExecutor:
         info: dict = {"accion": label}
         arm.goto(q6(wp[1], GRIP_OPEN))                     # encima del origen, pinza abierta
         if self.grasp == "act":
+            why_not = act_grip_problem(self.checkpoint)
+            if why_not:
+                raise RuntimeError(f"No se usa el ACT: {why_not}")
             self._act = self._act or ACTWindow(self.checkpoint)
             info["act"] = self._act.run(arm, wp[1]["joints"], wp[2]["joints"], self.seconds)
         else:

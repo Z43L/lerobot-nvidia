@@ -36,6 +36,15 @@ Error medio de la primera acción frente al dataset limpio, episodios 0, 10, 30,
 generalización ni el éxito del agarre. El criterio real es el peldaño 7 de `pipeline/GUIA_HOST_AJEDREZ.md`.
 Repetir la medida: `./.venv312/bin/python pipeline/e2e_check.py --stage models`.
 
+## Qué aprendieron (agarre)
+
+- Dataset: 59 episodios de *pick and place* de objetos de una bandeja. Todos cierran la pinza; en 34 de 59 se ve que la
+  pinza queda bloqueada por el objeto.
+- Pinza en el entrenamiento: estado 1,6–32,3 y orden máxima 32,7 (apertura típica 19–23). **Nunca más de ~32.**
+- Por eso el ejecutor `ik` exige `CHESS_GRIP_OPEN` <= máximo entrenado + 2 para usar el ACT. Con 40 (el valor por
+  defecto, pensado para el agarre guionizado) se niega.
+- No vieron piezas de ajedrez. Que agarren piezas está por demostrar en el host (peldaño 7).
+
 ## Copiarlos al host (los pesos no van en git)
 
 ```bash

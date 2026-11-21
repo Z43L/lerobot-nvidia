@@ -31,6 +31,8 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 | 17 | Agarre sin medir | Puede no coger las piezas | ⛔ |
 | 18 | Visión con la cámara del puesto sin validar | Falsos rechazos paran la partida | ⛔ |
 | 19 | Nada del movimiento real se ha probado | Riesgo en la demo | ⛔ |
+| 20 | El ACT se arrancaba con la pinza más abierta de lo que vio al entrenar | El agarre con ACT empieza fuera de distribución | 🟡 detectado y bloqueado |
+| 21 | Los pesos entrenados no están en ningún sitio compartido | El host no puede ejecutar el ACT | ⛔ |
 
 ---
 
@@ -133,6 +135,26 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 ### 19. Nada del movimiento real está probado
 - No se ha ejecutado ningún peldaño 5–8 de `pipeline/GUIA_HOST_AJEDREZ.md`. El Mac de desarrollo no tiene brazo.
 - Tampoco el alcance IK de las 64 casillas: necesita la calibración del seguidor, que solo está en el host.
+
+### 20. Apertura de la pinza fuera de lo entrenado
+- **Evidencia:** en el dataset limpio (59 episodios, 35 675 fotogramas) la pinza va de 1,6 a 32,3 (estado) y la orden no
+  pasa de 32,7; la apertura típica es 19–23. Las estadísticas de los dos checkpoints lo confirman. `chess_ik_exec.py` se
+  acerca a la pieza con `GRIP_OPEN = 40`, así que el ACT arrancaría fuera de su distribución.
+- **El agarre sí está en los datos:** los 59 episodios cierran la pinza (1,5 cierres de media). En 34 de 59 la pinza
+  queda bloqueada por un objeto (el estado se queda por encima de la orden), señal de un agarre real.
+- **Corrección:** `CHESS_GRIP_OPEN` (en `hub/chess_config.py`). El ejecutor `ik` se niega a usar el ACT si la apertura
+  supera lo entrenado + 2, y `e2e_check.py --stage models` lo marca como FAIL. Con `CHESS_GRIP_OPEN=30` pasa.
+- **Pendiente:** medir en el host si 30 abre lo suficiente para cada pieza. Los datos son de objetos de una bandeja
+  (*play tray*), no de piezas de ajedrez, y la cámara `front` del entrenamiento puede no ver lo mismo que la del tablero.
+  Que el ACT agarre piezas de ajedrez no está demostrado: es el peldaño 7.
+
+### 21. Los pesos no están en un sitio compartido
+- **Evidencia:** `PIPEFD/act_tray_a100_100k` (de donde salió el de 30k) no es visible con la sesión de HF de este Mac, y
+  ninguna de las cuentas consultadas tiene modelos ACT publicados. Las únicas copias están en el Mac de desarrollo
+  (`~/act_tray_ckpts` y `outputs/train/act_tray_clean_25000`). Pesan unos 200 MB cada uno, por encima del límite de
+  GitHub sin LFS.
+- **Pendiente:** decidir dónde publicarlos (Hub de Hugging Face privado, Git LFS o copia directa al host) y dejar en el
+  repo un script que los descargue.
 
 ---
 
