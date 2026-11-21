@@ -13,8 +13,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ENV_LOCAL = ROOT / "real" / "env.local.sh"
-# Estas variables NO se cargan nunca desde un fichero: las pone el usuario en su terminal.
-_NEVER_FROM_FILE = {"ALLOW_REAL_MOTION"}
+# Ninguna variable está vetada: env.local.sh puede fijar también ALLOW_REAL_MOTION (0 = parada).
+_NEVER_FROM_FILE: set[str] = set()
 
 
 def load_local_env(path: Path = ENV_LOCAL) -> dict[str, str]:

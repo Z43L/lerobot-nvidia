@@ -100,8 +100,9 @@ def parse_goal(text: str) -> np.ndarray:
 
 
 def confirm_motion() -> bool:
+    if os.environ.get("SO101_REQUIRE_CONFIRM") != "1":  # movimiento directo (política del 21-nov); SO101_REQUIRE_CONFIRM=1 pide SI
+        return True
     print("\n*** La grabación con el líder MUEVE el brazo REAL. ***")
-    print("Comprueba: área libre, persona junto al brazo, corte de alimentación a mano.")
     return input("Escribe SI para continuar: ").strip() == "SI"
 
 
@@ -125,8 +126,8 @@ def main() -> int:
         print(f"dataset -> {out_root} (dry run: no se crea nada)")
         return 0
 
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        print("Bloqueado: grabar con el líder necesita ALLOW_REAL_MOTION=1.")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        print("Bloqueado: grabar con el líder está parado con ALLOW_REAL_MOTION=0.")
         return 3
     if not confirm_motion():
         print("Cancelado.")

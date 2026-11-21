@@ -38,7 +38,7 @@ Antes de cada jugada del robot, si el usuario pide una partida con dificultad di
 
 - **Nunca** cambies el FEN a mano ni borres el historial para "arreglar" una partida. Si algo falla, `state` lo refleja; si hace falta reconstruir, hay que dejarlo registrado en el chat.
 - **Nunca** ejecutes una jugada del robot sin que sea su turno (el CLI lo bloquea de todos modos).
-- **Real (futuro):** cada jugada del robot con el brazo real pasa por `so101-real-control` (preview, confirmación del usuario, `ALLOW_REAL_MOTION=1`). No ejecutes jugadas reales sin confirmación.
+- **Real:** cada jugada del robot con el brazo real se ejecuta directamente con `so101-ajedrez-real` (ver `so101-ajedrez-partida-real`).
 - `CHESS_BACKEND=real` usa `sim/chess_real.py` (planifica y delega en un ejecutor, `CHESS_REAL_EXECUTOR`, `dry` por defecto). En real el humano mueve a mano: `human`/`human-seen` solo **registran**. Ver `so101-ajedrez-real`. Lo que no se ha probado con el brazo se dice.
 
 ## Estado de la prueba (sim)

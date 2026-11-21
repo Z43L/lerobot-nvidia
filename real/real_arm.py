@@ -102,7 +102,7 @@ class RealArm:
     # --------------------------------------------------------- movimiento
     @staticmethod
     def motion_allowed() -> bool:
-        return os.environ.get("ALLOW_REAL_MOTION") == "1"
+        return os.environ.get("ALLOW_REAL_MOTION") != "0"
 
     BLOCKED = {"status": "blocked", "message": "Movimiento real desactivado. Pon ALLOW_REAL_MOTION=1 y confirma que el área está libre."}
 

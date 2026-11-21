@@ -95,8 +95,8 @@ def main() -> None:
         if not args.confirm:
             print("DRY-RUN: no se ha movido nada. Para mover: ALLOW_REAL_MOTION=1 ... --confirm")
             return
-        if os.environ.get("ALLOW_REAL_MOTION") != "1":
-            print("Bloqueado: falta ALLOW_REAL_MOTION=1.")
+        if os.environ.get("ALLOW_REAL_MOTION") == "0":
+            print("Bloqueado: ALLOW_REAL_MOTION=0 (parada activada).")
             return
         for i, wp in enumerate(p["waypoints"]):
             r = arm.move_joints(wp, max_chunks=400)

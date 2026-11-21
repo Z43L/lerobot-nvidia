@@ -1,7 +1,7 @@
 # Guía del host: lanzar y validar el ajedrez real del SO-101
 
 Para quien opere en el Mac del puesto (el host, con el brazo y las cámaras), sea una persona o Claude Code.
-Las reglas de `AGENTS.md` mandan siempre. 🔒 = mueve el brazo real.
+Las reglas de `AGENTS.md` mandan siempre. 🔒 = mueve el brazo real (movimiento directo; `ALLOW_REAL_MOTION=0` o `arm_stop` lo paran).
 
 ## Arquitectura (la de los diagramas)
 
@@ -9,7 +9,7 @@ Las reglas de `AGENTS.md` mandan siempre. 🔒 = mueve el brazo real.
 Persona ─ Claude + skills ─ motor de ajedrez (sim/chess_cli.py)
                 │
                 ▼
-     MCP so101-chess (hub/chess_mcp.py)          ← gate: ALLOW_REAL_MOTION=1 + real/authorize_motion.sh + SI
+     MCP so101-chess (hub/chess_mcp.py)          ← parada: ALLOW_REAL_MOTION=0 / arm_stop
         chess_move(uci, executor)                 ← UNA llamada por jugada
           ├─ mapa del tablero   hub/chess_board_real.json (calibración por contacto con el líder)
           ├─ RealChessBackend   sim/chess_real.py (captura→cementerio, enroque, promoción)
@@ -19,7 +19,7 @@ Persona ─ Claude + skills ─ motor de ajedrez (sim/chess_cli.py)
 ```
 
 Configuración: una sola fuente, `hub/chess_config.py`. Prioridad: entorno, luego `real/env.local.sh`, luego defecto.
-Los puertos no tienen defecto y `ALLOW_REAL_MOTION` no se lee nunca de un fichero.
+Los puertos no tienen defecto.
 
 ## 1. Preparar el host (una vez)
 
@@ -33,7 +33,7 @@ ln -s ~/lerobot312 .venv312                         # .mcp.json usa ./.venv312
   `SO101_FOLLOWER_PORT`, `SO101_LEADER_PORT`, `SO101_FOLLOWER_ID`, `SO101_LEADER_ID`, `SO101_TOP_CAM`, `SO101_WRIST_CAM`,
   `SO101_MAX_RELATIVE_TARGET="2"`.
 - **Calibración del seguidor**: `~/.cache/huggingface/lerobot/calibration/robots/so_follower/<ID>.json`. Sin ella no hay IK.
-- **Modelos ACT**: ver `pipeline/MODELOS_ACT.md`. Se copian con `rsync`, porque no están en git.
+- **Modelos ACT**: van en el repo con Git LFS (`models/act/`). Hace falta `git-lfs` (`brew install git-lfs`); `host_validate.sh` hace el `git lfs pull`.
 - **Permiso de cámara de macOS** para la app que lanza el shell (Terminal o VS Code).
 - Reinicia Claude Code para que cargue el MCP `so101-chess`.
 
@@ -45,7 +45,7 @@ CAMERA=0 pipeline/host_validate.sh             # con las piezas en posición ini
 INSTALL_YOLO=1 pipeline/host_validate.sh       # si falta ultralytics (guarda pip freeze para volver atrás)
 ```
 
-El script crea `.venv312` si falta, instala lo básico (`chess`, `pyserial`, `mcp<2`), comprueba los modelos y ejecuta
+El script crea `.venv312` si falta, instala lo básico (`chess`, `pyserial`, `mcp<2`), descarga los modelos (`git lfs pull`) y ejecuta
 `pipeline/e2e_check.py`. El informe queda en `pipeline/runs/e2e_<fecha>/`. Sale con código 1 si hay algún FAIL.
 
 | Peldaño | Qué comprueba | Criterio de PASS |
@@ -60,13 +60,11 @@ El script crea `.venv312` si falta, instala lo básico (`chess`, `pyserial`, `mc
 **Un SKIP no es un PASS.** En el host no debería quedar ningún SKIP en los peldaños 1 y 3.
 **No se pasa a la sección 3 con algún FAIL.**
 
-## 3. Peldaños con movimiento 🔒 (uno a uno, con el SI del usuario cada vez)
+## 3. Peldaños con movimiento 🔒 (uno a uno)
 
-Antes de cada peldaño:
-- Área libre, una persona junto al brazo y el corte de alimentación a mano.
-- El usuario escribe **SI** en el chat.
-- El usuario ejecuta en su terminal `export ALLOW_REAL_MOTION=1` y `real/authorize_motion.sh 5`. Claude no lo hace nunca.
-- Para revocar: `real/authorize_motion.sh 0` (o `arm_stop` en el MCP).
+Movimiento directo, sin confirmación. Si algo va raro: `arm_stop` en el MCP (bloquea todo hasta `arm_resume`) o
+`ALLOW_REAL_MOTION=0` en el entorno, y no reenvíes órdenes en bucle. Límites siempre activos: ≤ 2°/paso, rango
+calibrado y parada por atasco.
 
 | # | Comando | PASS si |
 |---|---|---|
@@ -81,7 +79,7 @@ Anota en cada intento: éxito o fallo, la casilla, el tiempo y el motivo. Lo pid
 
 ## 4. Si algo falla
 
-- **El brazo se mueve raro o hay un golpe:** corte de alimentación. No reenvíes comandos.
+- **El brazo se mueve raro o hay un golpe:** `arm_stop` y revisa. No reenvíes comandos en bucle.
 - **`chess_move` devuelve `verification_failed`:** no registres. Corrige las piezas a mano, `chess_see` y repite.
 - **`no hay pieza en la pinza`:** el agarre falla. Revisa `GRIP_OPEN` (40, sin medir) y las alturas en `hub/chess_ik_exec.py`. Solo el peón (3,5 cm) y el rey (5,5 cm) están medidos.
 - **El ACT empeora el agarre:** quédate con `ik-scripted` (plan B, `CHECKLIST.md` §8).

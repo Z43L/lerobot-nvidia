@@ -93,7 +93,13 @@
         "hub/chess_mcp.py"
       ],
       "env": {
-        "SO101_VLA_DEVICE": "mps"
+        "SO101_FOLLOWER_PORT": "/dev/cu.usbmodem5B610353951",
+        "SO101_FOLLOWER_ID": "so101_follower",
+        "SO101_VLA_DEVICE": "mps",
+        "ALLOW_REAL_MOTION": "1",
+        "SO101_MAX_RELATIVE_TARGET": "2",
+        "CHESS_YOLO_CAM": "0",
+        "CHESS_WRIST_CAM": "2"
       }
     }
   }

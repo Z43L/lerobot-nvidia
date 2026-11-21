@@ -19,11 +19,11 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 | 5 | El diagrama pide una orden de alto nivel por jugada; el MCP solo tenía herramientas sueltas | Flujo distinto al diseñado | ✅ |
 | 6 | El gate de seguridad se comprobaba después de preparar el ejecutor | Seguridad | ✅ |
 | 7 | El ACT de 30k (entrenado en CUDA) no cargaba en un Mac | Bloqueante para el ACT en el host | ✅ |
-| 8 | Las rutas de los pesos ACT apuntaban a carpetas vacías | Bloqueante: no hay ACT | 🟡 |
+| 8 | Las rutas de los pesos ACT apuntaban a carpetas vacías | Bloqueante: no hay ACT | ✅ |
 | 9 | `chess_plan` devolvía coordenadas de la sim, no metros reales | El brazo iría a la casilla equivocada | ✅ |
 | 10 | Tres estrategias de agarre incompatibles, ninguna oficial | Confusión, trabajo perdido | ✅ decidido |
 | 11 | Hardcodeos: puertos, cámaras, rutas, límites | Fallos según el puesto | ✅ |
-| 12 | `ALLOW_REAL_MOTION=1` fijado en ficheros | Seguridad (contra `AGENTS.md`) | ✅ |
+| 12 | `ALLOW_REAL_MOTION=1` fijado en ficheros | Política de movimiento | ✅ sustituido (ver 22) |
 | 13 | Límite de velocidad incoherente (2, 2,6 y 5) | Seguridad | ✅ |
 | 14 | Documentación y skills contradictorias | Agentes y personas toman decisiones equivocadas | ✅ |
 | 15 | El entorno `.venv312` no existía con ese nombre | Ningún MCP arrancaba | ✅ |
@@ -32,7 +32,10 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 | 18 | Visión con la cámara del puesto sin validar | Falsos rechazos paran la partida | ⛔ |
 | 19 | Nada del movimiento real se ha probado | Riesgo en la demo | ⛔ |
 | 20 | El ACT se arrancaba con la pinza más abierta de lo que vio al entrenar | El agarre con ACT empieza fuera de distribución | 🟡 detectado y bloqueado |
-| 21 | Los pesos entrenados no están en ningún sitio compartido | El host no puede ejecutar el ACT | ⛔ |
+| 21 | Los pesos entrenados no estaban en ningún sitio compartido | El host no podía ejecutar el ACT | ✅ en el repo (Git LFS) |
+| 22 | Política de movimiento: confirmación eliminada; `arm_stop` dejaba de parar | Parada que no paraba | ✅ |
+| 23 | Al fusionar `take_piece`: dos entradas `so101-chess` en `.mcp.json` y el ACT se negaba siempre | ACT inutilizable; config ambigua | ✅ |
+| 24 | La verificación «sin movimiento» habría movido el brazo con la política directa | Seguridad de la prueba | ✅ |
 
 ---
 
@@ -73,7 +76,7 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 ### 8. Las rutas de los pesos apuntaban a carpetas vacías
 - **Evidencia:** `act_tray_a100_100k_ckpts/` y `act_tray_30k_ckpts/` están vacías. `modeloACT/` está en `.gitignore`. El checkpoint de 200 pasos de la otra rama es un puntero de Git LFS (134 bytes).
 - **Corrección:** registro de modelos en `hub/chess_config.py` (`ACT_MODELS`), con variables para cada ruta y `CHESS_ACT_CHECKPOINT` para elegir.
-- **Pendiente:** copiar los pesos al host con `rsync` (`pipeline/MODELOS_ACT.md`).
+- **Resuelto con el fallo 21:** los pesos van en el repo con Git LFS.
 
 ### 9. El plan usaba coordenadas de la sim
 - **Evidencia:** `chess_plan` documentaba "coordenadas = etiquetas de la geometría de la SIM (no metros reales)". `goal_utils.square_label_xy` lee `hub/chess_board.json` (sim).
@@ -99,8 +102,7 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 
 ### 12. `ALLOW_REAL_MOTION=1` fijado en ficheros
 - **Evidencia:** en `.mcp.json` (`so101-real`, `so101-real-hanoi`) y sin condición en `real/env.sh`. Contradice `AGENTS.md` ("nunca pongas `ALLOW_REAL_MOTION=1` sin ese permiso").
-- **Corrección:** eliminado de ambos sitios. El cargador de configuración nunca lo lee de un fichero. Lo exporta el usuario cuando da el SI.
-- **Efecto en el host:** hay que exportarlo a mano antes de mover el brazo.
+- **Corrección inicial:** eliminado de ambos sitios. **Sustituido** por la decisión del 21-nov (fallo 22): `ALLOW_REAL_MOTION` pasa a ser un interruptor de parada (`=0` para todo).
 
 ### 13. Límite de velocidad incoherente
 - **Evidencia:** defecto 5 en `real/config.py`, `deploy_goal.py` y `record_goal.py`; 2,6 en `chess_mcp.py`; 2 en el resto. `AGENTS.md` pide 2.
@@ -153,8 +155,31 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
   ninguna de las cuentas consultadas tiene modelos ACT publicados. Las únicas copias están en el Mac de desarrollo
   (`~/act_tray_ckpts` y `outputs/train/act_tray_clean_25000`). Pesan unos 200 MB cada uno, por encima del límite de
   GitHub sin LFS.
-- **Pendiente:** decidir dónde publicarlos (Hub de Hugging Face privado, Git LFS o copia directa al host) y dejar en el
-  repo un script que los descargue.
+- **Corrección:** los dos `pretrained_model` van en el repo con Git LFS, en `models/act/hf-30k-cuda/` y
+  `models/act/local-25k-mps/`. `hub/chess_config.py` los usa por defecto y salta los punteros sin descargar.
+  `host_validate.sh` hace `git lfs pull`.
+
+### 22. Política de movimiento (decisión del usuario, 21-nov)
+- **Decisión:** se quita la política de seguridad: sin confirmación `SI`, sin permiso con caducidad, sin requisitos de
+  área libre o persona. Se mantienen los límites mecánicos (≤ 2°/paso, rango calibrado, parada por atasco).
+- **Cómo queda:** `ALLOW_REAL_MOTION` es un **interruptor de parada**: por defecto se mueve; `ALLOW_REAL_MOTION=0` bloquea
+  todos los scripts y MCP. Opcionales: `SO101_REQUIRE_CONFIRM=1` (los scripts vuelven a pedir SI) y
+  `CHESS_REQUIRE_PERMISSION=1` (el ajedrez vuelve a exigir `real/authorize_motion.sh`).
+- **Fallo encontrado al aplicarla:** `arm_stop` solo borraba el fichero de permiso, que ya no se usaba, así que no paraba
+  nada. Ahora activa la parada en el servidor (`ALLOW_REAL_MOTION=0`) y `arm_resume` la quita. Probado: tras `arm_stop`,
+  `chess_move(..., "ik")` devuelve `blocked`.
+- `real/test_fuerza.py` usaba la caducidad del permiso como temporizador del bucle: ahora tiene un tope propio
+  (`TEST_FUERZA_MAX_S`, 120 s).
+
+### 23. Fusión de `take_piece`
+- `.mcp.json` tenía dos claves `so101-chess`: queda una, la del host (probada con el brazo).
+- El ejecutor comprobaba la apertura del ACT con `GRIP_OPEN = 40` en lugar de la apertura real de la pieza
+  (`GRIP_APPROACH`, 14–17), así que `--grasp act` se negaba siempre. Ahora usa la de la pieza.
+
+### 24. La verificación sin movimiento podía mover el brazo
+- Con la política directa, la prueba del gate de `e2e_check.py` (`chess_move(..., "ik")`) habría movido el brazo en el host.
+- Ahora el script fuerza `ALLOW_REAL_MOTION=0` y `CHESS_REQUIRE_PERMISSION=1` en todo lo que lanza. Si aun así el gate
+  dejara mover, no lanza la prueba.
 
 ---
 
@@ -171,6 +196,6 @@ Hay que repetirlo en el host. Ningún peldaño con movimiento se ejecuta con alg
 ## Siguientes pasos (en el host)
 
 1. `git checkout` de esta rama y `pipeline/host_validate.sh`.
-2. Copiar los pesos ACT con `rsync` y comprobar `--stage models` en el host.
+2. `git lfs pull` (lo hace `host_validate.sh`) y comprobar `--stage models` en el host.
 3. Instalar `ultralytics` y validar la visión en vivo (`CAMERA=0`).
-4. Peldaños 5–8 de `pipeline/GUIA_HOST_AJEDREZ.md`, uno a uno, con el SI del usuario.
+4. Peldaños 5–8 de `pipeline/GUIA_HOST_AJEDREZ.md`, uno a uno.

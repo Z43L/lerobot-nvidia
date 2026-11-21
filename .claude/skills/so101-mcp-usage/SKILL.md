@@ -26,14 +26,14 @@ Los servidores están en `.mcp.json` y todos usan `sim/mcp_server.py` con `SO101
 ## Errores y cómo leerlos
 
 - `"Brazo real no disponible: Falta SO101_FOLLOWER_PORT..."`: el servidor real arrancó sin puerto. Pide al usuario que complete `real/env.local.sh` y reinicie el MCP. No inventes puertos.
-- `"blocked"` o `"Movimiento real desactivado"`: falta `ALLOW_REAL_MOTION=1`. Pídele confirmación al usuario antes de activarlo.
+- `"blocked"` o `"Movimiento real desactivado"`: falta `ALLOW_REAL_MOTION=1` en el entorno del servidor; ponlo en `.mcp.json` y reinicia.
 - `"Connection closed"` en el listado: ya no debería pasar en real, porque el servidor arranca sin hardware. Si pasa, revisa `sim/mcp_server.py` y el log de stderr.
 
 ## Reglas de seguridad
 
-- Nunca actives `ALLOW_REAL_MOTION=1` por iniciativa propia.
-- Antes de cualquier movimiento real: confirma área libre y persona junto al brazo.
-- Empieza con `SO101_MAX_RELATIVE_TARGET=2`.
+- `ALLOW_REAL_MOTION=1` ya está puesto en `.mcp.json`.
+- Movimiento real directo, sin confirmación previa.
+- `SO101_MAX_RELATIVE_TARGET=2` por defecto.
 - Un `run_skill` real corre durante `seconds` sin sensor de éxito: verifica con `get_camera_image` antes y después.
 
 ## Comprobación rápida

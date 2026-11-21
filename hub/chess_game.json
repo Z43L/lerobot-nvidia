@@ -1,6 +1,29 @@
 {
-  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-  "history": [],
+  "fen": "rnbqkbnr/p1pppppp/1p6/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+  "history": [
+    {
+      "ply": 1,
+      "who": "manual",
+      "uci": "e2e4",
+      "san": "e4",
+      "board_ok": true,
+      "steps": [
+        "e2->e4"
+      ],
+      "bad_squares": []
+    },
+    {
+      "ply": 2,
+      "who": "humano",
+      "uci": "b7b6",
+      "san": "b6",
+      "board_ok": true,
+      "steps": [
+        "observada con la cámara/indicada por el humano (el robot no la ejecuta)"
+      ],
+      "bad_squares": []
+    }
+  ],
   "robot_color": "white",
   "backend": "sim"
 }

@@ -52,15 +52,20 @@ if echo "$MISSING" | grep -qw ultralytics; then
   fi
 fi
 
-say "4. Modelos ACT (los pesos NO están en git)"
+say "4. Modelos ACT (Git LFS en models/act/)"
+if command -v git-lfs >/dev/null 2>&1 || git lfs version >/dev/null 2>&1; then
+  git lfs install --local >/dev/null && git lfs pull --include "models/act/**" || echo "FALLÓ git lfs pull (¿cuota de LFS o permisos?)"
+else
+  echo "FALTA git-lfs: brew install git-lfs  y vuelve a lanzar este script. Sin él los pesos son punteros de 134 bytes."
+fi
 "$PY" - <<'P'
 import sys; sys.path.insert(0,"hub")
 import chess_config as C
 for n,p in C.ACT_MODELS.items():
-    ok=(p/"model.safetensors").exists() and (p/"model.safetensors").stat().st_size>1_000_000
-    print(("OK    " if ok else "FALTA "), n, p)
+    w=p/"model.safetensors"
+    st="OK    " if w.exists() and w.stat().st_size>1_000_000 else ("PUNTERO" if w.exists() else "FALTA ")
+    print(st, n, p, f"({w.stat().st_size/1e6:.0f} MB)" if w.exists() else "")
 P
-echo "Si faltan, desde el Mac donde se entrenaron:  rsync -avh --progress ~/act_tray_ckpts/ USUARIO@HOST:~/act_tray_ckpts/ ;  rsync -avh --progress outputs/train/act_tray_clean_25000/ USUARIO@HOST:<repo>/outputs/train/act_tray_clean_25000/"
 
 say "5. Verificación sin movimiento (peldaños 0-4 y models)"
 ARGS=(--json "$OUT/e2e.json"); [ -n "${CAMERA:-}" ] && ARGS+=(--camera "$CAMERA")
@@ -71,4 +76,4 @@ say "Resultado"
 echo "Informe: $OUT/e2e.txt  y  $OUT/e2e.json"
 if [ "$RC" -ne 0 ]; then echo "HAY FALLOS (ver arriba). No pases a los peldaños que mueven el brazo."; exit 1; fi
 echo "Sin fallos. Los SKIP no están comprobados: revísalos."
-echo "Siguiente (mueve el brazo; requiere el SI del usuario, ver pipeline/GUIA_HOST_AJEDREZ.md, sección 'Peldaños con movimiento')."
+echo "Siguiente: peldaños que mueven el brazo (pipeline/GUIA_HOST_AJEDREZ.md, sección 'Peldaños con movimiento')."

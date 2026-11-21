@@ -33,8 +33,10 @@ def _int(*names: str, default: int) -> int:
 
 
 def _first_existing(*candidates: Path) -> Path:
+    """Primera ruta con un checkpoint REAL (config.json y pesos de más de 1 MB: un puntero de Git LFS sin descargar no vale)."""
     for c in candidates:
-        if (c / "config.json").exists():
+        w = c / "model.safetensors"
+        if (c / "config.json").exists() and (not w.exists() or w.stat().st_size > 1_000_000):
             return c
     return candidates[0]
 
@@ -52,11 +54,18 @@ GAME_FILE = Path(os.environ.get("CHESS_GAME_FILE", HUB / "chess_game.json"))
 BOARD_GEOMETRY = Path(os.environ.get("CHESS_BOARD_GEOMETRY", ROOT / "vision" / "board_camara0.json"))
 YOLO_WEIGHTS = Path(os.environ.get("CHESS_YOLO_WEIGHTS",
                                    ROOT / "runs/detect/vision/runs/piezas_camara_v2/weights/best.pt"))
-# ACT genérico (SIN objetivo: 6 articulaciones + cámaras front y gripper a 640x360). Modelos conocidos, en orden de
-# preferencia. Ninguno está en git (los pesos pesan ~200 MB): se copian al host con rsync (ver pipeline/MODELOS_ACT.md).
+# ACT genérico (SIN objetivo: 6 articulaciones + cámaras front y gripper a 640x360). Los pesos van en el repo con Git LFS
+# (models/act/<nombre>/, `git lfs pull` en el host). Ver pipeline/MODELOS_ACT.md. Si no están, se buscan en las rutas
+# donde se entrenaron/descargaron.
+def _model(env: str, *candidates: Path) -> Path:
+    return Path(os.environ[env]) if os.environ.get(env) else _first_existing(*candidates)
+
+
 ACT_MODELS: dict[str, Path] = {
-    "hf-30k-cuda": Path(os.environ.get("ACT_HF_30K", Path.home() / "act_tray_ckpts/checkpoints/030000/pretrained_model")),
-    "local-25k-mps": Path(os.environ.get("ACT_LOCAL_25K", ROOT / "outputs/train/act_tray_clean_25000/checkpoints/025000/pretrained_model")),
+    "hf-30k-cuda": _model("ACT_HF_30K", ROOT / "models/act/hf-30k-cuda",
+                          Path.home() / "act_tray_ckpts/checkpoints/030000/pretrained_model"),
+    "local-25k-mps": _model("ACT_LOCAL_25K", ROOT / "models/act/local-25k-mps",
+                            ROOT / "outputs/train/act_tray_clean_25000/checkpoints/025000/pretrained_model"),
 }
 ACT_GENERIC_CKPT = (Path(os.environ["CHESS_ACT_CHECKPOINT"]) if os.environ.get("CHESS_ACT_CHECKPOINT")
                     else _first_existing(*ACT_MODELS.values(), ROOT / "modeloACT/checkpoints/last/pretrained_model"))
@@ -69,13 +78,18 @@ MOTION_FILE = ROOT / "real" / ".motion_ok"
 
 
 def motion_permission() -> tuple[bool, str]:
-    """Gate único de movimiento: ALLOW_REAL_MOTION=1 (lo pone el usuario) + permiso con caducidad que crea el usuario
-    con real/authorize_motion.sh. Lo usan el MCP y el ejecutor IK; antes cada uno tenía su copia."""
+    """Gate único de movimiento (MCP y ejecutor IK). Política del 21-nov (decisión del usuario): movimiento directo.
+      - ALLOW_REAL_MOTION=0  -> parada: nada se mueve (interruptor de emergencia por software).
+      - CHESS_REQUIRE_PERMISSION=1 -> vuelve el modo con permiso: ALLOW_REAL_MOTION=1 + real/authorize_motion.sh.
+    Los límites mecánicos (rango, grados por paso, atasco) están en el código y no dependen de esto."""
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        return False, "parada activada (ALLOW_REAL_MOTION=0)."
+    if os.environ.get("CHESS_REQUIRE_PERMISSION") != "1":
+        return True, "movimiento directo (sin permiso)"
     if os.environ.get("ALLOW_REAL_MOTION") != "1":
         return False, "ALLOW_REAL_MOTION=1 no está puesto en el entorno."
     if not MOTION_FILE.exists():
-        return False, ("Sin permiso del usuario. Debe ejecutar en su terminal: real/authorize_motion.sh <minutos> "
-                       "(tras confirmar área libre, persona junto al brazo y corte de alimentación a mano).")
+        return False, "Modo con permiso (CHESS_REQUIRE_PERMISSION=1): falta real/authorize_motion.sh <minutos>."
     try:
         expiry = float(MOTION_FILE.read_text().strip())
     except ValueError:

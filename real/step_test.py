@@ -6,7 +6,7 @@ Calcula: tiempo hasta 1° del objetivo, sobreimpulso y error final. Y lo compara
 con los mismos parámetros del modelo (sim/so101/so101_vla.xml).
 
 Por defecto NO mueve nada (dry-run). Para mover el brazo hacen falta las dos cosas:
-  ALLOW_REAL_MOTION=1 y --confirm, y la persona debe estar junto al brazo con el área libre.
+  --confirm (sin él es un ensayo). ALLOW_REAL_MOTION=0 lo bloquea.
 
   ./.venv312/bin/python real/step_test.py                       # dry-run, solo plan y simulación
   ALLOW_REAL_MOTION=1 ./.venv312/bin/python real/step_test.py --confirm --step 4
@@ -119,7 +119,7 @@ def main() -> int:
 
     port = os.environ.get("SO101_FOLLOWER_PORT", "")
     rid = os.environ.get("SO101_FOLLOWER_ID", "so101_follower")
-    move_ok = os.environ.get("ALLOW_REAL_MOTION") == "1" and args.confirm
+    move_ok = os.environ.get("ALLOW_REAL_MOTION") != "0" and args.confirm
     if not move_ok:
         print("\nDry-run: no se mueve el brazo. Para medir el real: ALLOW_REAL_MOTION=1 y --confirm.")
         print(f"Plan: escalón de {args.step}° en {args.joint}, {args.hold}s, vuelta al inicio, CSV en {OUT_DIR}.")

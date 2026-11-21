@@ -1,0 +1,12 @@
+{
+  "pose_origen_grados": {
+    "shoulder_pan": -0.6,
+    "shoulder_lift": -97.4,
+    "elbow_flex": 96.9,
+    "wrist_flex": -98.6,
+    "wrist_roll": 165.5,
+    "gripper": 2.4
+  },
+  "fecha": "2026-11-21 16:25",
+  "nota": "punto de retorno = reposo plegado real, leido del brazo (arm_state) el 21-nov"
+}

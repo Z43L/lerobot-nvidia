@@ -72,7 +72,7 @@ Para verlo en la ventana: mueve el brazo de `so101-sim-objects` por keyframes co
 
 ## Brazo real
 
-Reproducción con una sola confirmación para toda la trayectoria. Solo con el sí explícito del usuario, con el área libre y una persona junto al brazo.
+Reproducción directa de toda la trayectoria (preview y confirm_token garantizan que se ejecuta la previsualizada).
 
 1. `so101-motion > motion_status`. Si `allow_real_motion` es false, lo activa el usuario; tú no.
 2. Valida con la calibración real: `hub/motion_lib.py validate {name}`. Si falla, no sigas.

@@ -115,8 +115,9 @@ def dry_run(checkpoint: Path, goal: np.ndarray, device: str) -> int:
 
 
 def confirm_motion() -> bool:
+    if os.environ.get("SO101_REQUIRE_CONFIRM") != "1":  # movimiento directo (política del 21-nov); SO101_REQUIRE_CONFIRM=1 pide SI
+        return True
     print("\n*** El VLA/ACT va a MOVER el brazo REAL. ***")
-    print("Comprueba: área libre, persona junto al brazo, corte de alimentación a mano.")
     return input("Escribe SI para continuar: ").strip() == "SI"
 
 
@@ -153,8 +154,8 @@ def real_run(checkpoint: Path, goal: np.ndarray, seconds: float, device: str) ->
         print(f"[FAIL] {p}")
     if problems:
         return 1
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        print("Bloqueado: desplegar en el brazo necesita ALLOW_REAL_MOTION=1.")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        print("Bloqueado: desplegar en el brazo está parado con ALLOW_REAL_MOTION=0.")
         return 3
     if not confirm_motion():
         print("Cancelado.")

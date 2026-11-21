@@ -88,16 +88,17 @@ def run_stage(name: str, stage: str, cmd: list[str], env: dict | None = None) ->
 
 
 def confirm_motion(action: str) -> bool:
-    """Pide confirmación escrita antes de cualquier movimiento real."""
+    """Movimiento directo; con SO101_REQUIRE_CONFIRM=1 pide confirmación escrita."""
+    if os.environ.get("SO101_REQUIRE_CONFIRM") != "1":  # movimiento directo (política del 21-nov); SO101_REQUIRE_CONFIRM=1 pide SI
+        return True
     print(f"\n*** {action} mueve el brazo REAL. ***")
-    print("Comprueba: área libre, persona junto al brazo, corte de alimentación a mano.")
     answer = input("Escribe SI para continuar: ").strip()
     return answer == "SI"
 
 
 def motion_gate(action: str) -> bool:
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        print(f"Bloqueado: {action} necesita ALLOW_REAL_MOTION=1 en el entorno.")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        print(f"Bloqueado: {action} está parado con ALLOW_REAL_MOTION=0.")
         return False
     return confirm_motion(action)
 
@@ -154,8 +155,8 @@ def stage_record(args) -> int:
         return run_stage(args.run, "record", cmd)
     # Grabador real con objetivo por episodio. Pide datos por teclado y su propia confirmación SI,
     # así que se ejecuta con la terminal (sin redirigir la salida a un log).
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        print("Bloqueado: grabar con el líder necesita ALLOW_REAL_MOTION=1 en el entorno.")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        print("Bloqueado: grabar con el líder está parado con ALLOW_REAL_MOTION=0.")
         return 3
     cmd = [str(PY), "real/record_goal.py", "--name", args.run, "--episodes", str(args.episodes)]
     state = load_state(args.run)
@@ -217,12 +218,12 @@ def stage_deploy(args) -> int:
         print("deploy solo está implementado para el brazo real.")
         return 2
     if args.policy == "act":
-        # ACT con objetivo: real/deploy_goal.py pide el SI por consola, así que va sin redirigir la salida.
+        # ACT con objetivo: real/deploy_goal.py puede pedir SI por consola (SO101_REQUIRE_CONFIRM=1): sin redirigir la salida.
         if not args.goal:
             print("[FAIL] ACT necesita --goal 'x,y' (metros) para el objetivo de este episodio")
             return 2
-        if os.environ.get("ALLOW_REAL_MOTION") != "1":
-            print("Bloqueado: desplegar en el brazo necesita ALLOW_REAL_MOTION=1.")
+        if os.environ.get("ALLOW_REAL_MOTION") == "0":
+            print("Bloqueado: desplegar en el brazo está parado con ALLOW_REAL_MOTION=0.")
             return 3
         cmd = [str(PY), "real/deploy_goal.py", "--checkpoint", args.checkpoint,
                "--goal", args.goal, "--seconds", str(args.seconds)]

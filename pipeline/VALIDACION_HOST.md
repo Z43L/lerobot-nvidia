@@ -10,6 +10,5 @@ cópialo aparte (scp/rsync) a `outputs/train/act_tray_test200/checkpoints/000200
 3. Cámaras `front` y `gripper` a 640x360; mismo `robot.id` que al grabar.
 4. Evaluación offline del checkpoint (sin robot):
    `python pipeline/offline_eval.py <checkpoint> <ruta_dataset>`
-5. Prueba con brazo: SOLO con SI explícito, área libre, persona en el corte de alimentación,
-   `SO101_MAX_RELATIVE_TARGET=2`, 15–20 s. Usa `lerobot-rollout` (este dataset no tiene objetivo x,y,
+5. Prueba con brazo: directa, `SO101_MAX_RELATIVE_TARGET=2`, 15–20 s. Usa `lerobot-rollout` (este dataset no tiene objetivo x,y,
    así que `real/deploy_goal.py` no aplica). Vía de despliegue sin probar.

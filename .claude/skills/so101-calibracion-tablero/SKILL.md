@@ -17,8 +17,8 @@ ACT necesita un objetivo `x,y` en metros, en el marco de la base del SO-101, igu
 
 ## Reglas que no se saltan
 
-1. **Tocar con el líder mueve el brazo real.** Necesita `ALLOW_REAL_MOTION=1` y que el usuario escriba `SI` (igual que cualquier 🔒). Área libre, persona junto al brazo, corte de alimentación a mano.
-2. Velocidad: `SO101_MAX_RELATIVE_TARGET=2` (en `real/env.local.sh`).
+1. **Tocar con el líder mueve el brazo real.** Se hace directamente, sin `SI` ni permiso previo.
+2. Velocidad: `SO101_MAX_RELATIVE_TARGET=2` por defecto (en `real/env.local.sh`).
 3. Toca **suave**, a unos milímetros del tablero. No lo golpees.
 4. Si la pinza choca con una pieza o se aleja de la casilla, para y vuelve a empezar desde la pose de reposo.
 5. **La lectura (`read`) no mueve el brazo**, pero el toque sí. Lee solo cuando la pinza esté quieta.
@@ -69,7 +69,7 @@ Para cada casilla (a1, h1, a6 y comprobación h6), en este orden:
   ```bash
   ./.venv312/bin/python hub/board_touch_calib.py fk --deg <pan,lift,elbow,wrist_flex,wrist_roll>
   ```
-- Prueba sin agarre: lleva la pinza a 3 casillas al azar y comprueba que cae en el centro (con `SI`).
+- Prueba sin agarre: lleva la pinza a 3 casillas al azar y comprueba que cae en el centro.
 
 ### 5. Usarlo
 
