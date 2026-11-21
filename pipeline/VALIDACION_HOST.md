@@ -1,8 +1,8 @@
 # Validar en el host del robot (dataset play-tray, ACT)
 
 Checkpoint de prueba: 200 pasos, solo humo (error offline medio ~13°). NO es un modelo útil.
-Entrenado con PIPEFD/data-play-tray-1-clean (59 ep, wrist_roll positivo). El checkpoint no está en git:
-cópialo aparte (scp/rsync) a `outputs/train/act_tray_test200/checkpoints/000200/pretrained_model`.
+Entrenado con PIPEFD/data-play-tray-1-clean (59 ep, wrist_roll positivo). El checkpoint va por Git LFS en `checkpoints/act_tray_test200/`:
+`git lfs install && git pull` (si salen punteros de texto, `git lfs pull`).
 
 1. Comprobar dataset (sin robot):
    `python pipeline/pretrain_check.py <ruta_dataset> --video`
