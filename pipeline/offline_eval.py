@@ -18,7 +18,8 @@ a = ap.parse_args()
 eps = [int(x) for x in a.episodes.split(",")]
 ds = LeRobotDataset("local/eval", root=a.root, episodes=eps)
 pol = ACTPolicy.from_pretrained(a.ckpt).to(a.device).eval()
-pre, post = make_pre_post_processors(pol.config, a.ckpt)
+ov = {"device_processor": {"device": a.device}}  # un checkpoint de CUDA lleva "cuda" fijado en los procesadores
+pre, post = make_pre_post_processors(pol.config, a.ckpt, preprocessor_overrides=ov, postprocessor_overrides=ov)
 names = ["pan", "lift", "elbow", "wflex", "wroll", "grip"]
 for e in eps:
     idx = [i for i in range(len(ds)) if int(ds.hf_dataset[i]["episode_index"]) == e][:: a.stride]

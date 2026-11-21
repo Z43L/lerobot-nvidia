@@ -8,5 +8,6 @@ export SO101_TOP_CAM="${SO101_TOP_CAM:-0}"
 export SO101_WRIST_CAM="${SO101_WRIST_CAM:-1}"
 export SO101_TABLE_CAM="${SO101_TABLE_CAM:--1}"   # -1 = sin cámara de mesa; p. ej. 0 para la webcam del Mac
 export SO101_VLA_DEVICE="${SO101_VLA_DEVICE:-mps}"  # GPU de Apple. Usa cuda solo si el puesto tiene GPU NVIDIA
-export ALLOW_REAL_MOTION=1
+export SO101_MAX_RELATIVE_TARGET="${SO101_MAX_RELATIVE_TARGET:-2}"  # grados por paso; no subir sin acuerdo
+# ALLOW_REAL_MOTION NO se pone aquí: lo exporta el usuario en su terminal, solo cuando da el SI para mover el brazo real.
 [ -f "$(dirname "${BASH_SOURCE[0]}")/env.local.sh" ] && source "$(dirname "${BASH_SOURCE[0]}")/env.local.sh"

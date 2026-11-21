@@ -6,6 +6,8 @@ Claude hace el bucle (mira -> decide -> mueve -> verifica). Este servidor solo o
     chess_cameras, chess_camera, chess_see, chess_square_px, chess_verify_move
   Partida (reglas, NO mueve nada)
     chess_state, chess_new, chess_plan, chess_commit
+  Jugada completa (una llamada; dry por defecto)
+    chess_move: mapa -> coger -> soltar -> pose final -> verificar con foto
   Brazo (leen, o mueven con el permiso del usuario)
     arm_state, arm_gripper_px, arm_jog, arm_probe, arm_servo, arm_stop
   ACT
@@ -42,22 +44,23 @@ ROOT = HUB.parent
 for sub in ("vision", "sim", "real"):
     sys.path.insert(0, str(ROOT / sub))
 
-os.environ.setdefault("CHESS_BOARD_GEOMETRY", str(ROOT / "vision" / "board_camara0.json"))
 os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
-YOLO_CAM = int(os.environ.get("CHESS_YOLO_CAM", "0"))
-WRIST_CAM = int(os.environ.get("CHESS_WRIST_CAM", "2"))
-GEOMETRY = Path(os.environ["CHESS_BOARD_GEOMETRY"])
+import chess_config as CFG  # noqa: E402  (única fuente de cámaras, puertos, rutas y límites)
+
+os.environ.setdefault("CHESS_BOARD_GEOMETRY", str(CFG.BOARD_GEOMETRY))
+YOLO_CAM, WRIST_CAM = CFG.YOLO_CAM, CFG.WRIST_CAM
+GEOMETRY = CFG.BOARD_GEOMETRY
 ARM_MODE = os.environ.get("CHESS_ARM", "real").lower()
-MOTION_FILE = ROOT / "real" / ".motion_ok"
+MOTION_FILE = CFG.MOTION_FILE
 JACOBIAN_FILE = ROOT / "real" / "vision_jacobian.json"
-GAME_FILE = os.environ.get("CHESS_GAME_FILE", str(ROOT / "hub" / "chess_game.json"))
+GAME_FILE = str(CFG.GAME_FILE)
 FRAMES = ROOT / "vision" / "frames"
 JOINTS = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 LIMITS = {"shoulder_pan": (-100, 100), "shoulder_lift": (-120, 120), "elbow_flex": (-110, 110),
           "wrist_flex": (-115, 115), "wrist_roll": (-180, 180), "gripper": (0, 100)}
 MAX_JOG_DEG = 3.0   # por llamada a arm_jog
-STEP_DEG = 2.6      # por paso de control (era 2.0; +30% acordado con el usuario para vencer la carga del codo)
+STEP_DEG = CFG.STEP_DEG  # por paso de control; tope = SO101_MAX_RELATIVE_TARGET (2 por defecto, AGENTS.md)
 FILES = "abcdefgh"
 
 mcp = FastMCP("so101-chess")
@@ -142,20 +145,7 @@ def _cli(*args: str) -> str:
 
 
 # ------------------------------------------------------------------ permiso de movimiento
-def motion_permission() -> tuple[bool, str]:
-    if os.environ.get("CHESS_REQUIRE_PERMISSION") != "1":  # por defecto: movimiento directo, sin permiso con caducidad
-        return True, "movimiento directo (sin permiso)"
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        return False, "ALLOW_REAL_MOTION=1 no está puesto en el servidor."
-    if not MOTION_FILE.exists():
-        return False, "Sin permiso del usuario. Debe ejecutar en su terminal: real/authorize_motion.sh <minutos> (tras confirmar área libre, persona junto al brazo y corte de alimentación a mano)."
-    try:
-        expiry = float(MOTION_FILE.read_text().strip())
-    except ValueError:
-        return False, "real/.motion_ok no es válido."
-    if time.time() > expiry:
-        return False, "El permiso de movimiento ha caducado. El usuario debe renovarlo con real/authorize_motion.sh."
-    return True, f"permiso válido ({int(expiry - time.time())} s)"
+motion_permission = CFG.motion_permission  # gate único (ALLOW_REAL_MOTION + permiso con caducidad)
 
 
 def _arm():
@@ -166,11 +156,9 @@ def _arm():
     if _robot is None:
         from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
 
-        port = os.environ.get("SO101_FOLLOWER_PORT", "")
-        if not port:
-            raise RuntimeError("Falta SO101_FOLLOWER_PORT.")
+        port = CFG.require_port()
         robot = SO101Follower(SO101FollowerConfig(
-            port=port, id=os.environ.get("SO101_FOLLOWER_ID", "so101_follower"), cameras={}, use_degrees=True,
+            port=port, id=CFG.FOLLOWER_ID, cameras={}, use_degrees=True,
             max_relative_target=STEP_DEG, disable_torque_on_disconnect=False))
         robot.connect(calibrate=False)
         if not robot.is_calibrated:
@@ -185,7 +173,7 @@ def _joints_now() -> dict[str, float]:
     return {n: float(obs[f"{n}.pos"]) for n in JOINTS}
 
 
-def _move_relative(deltas: dict[str, float], hz: float = 30.0) -> dict:
+def _move_relative(deltas: dict[str, float], hz: float = CFG.HZ) -> dict:
     """Mueve en pasos de STEP_DEG hacia (actual + delta), con límites. Requiere permiso. Devuelve antes/después."""
     ok, why = motion_permission()
     if not ok:
@@ -317,23 +305,15 @@ def chess_square_px(square: str) -> dict:
 def chess_verify_move(uci: str) -> dict:
     """Tras una jugada física: comprueba con la cámara que el origen está vacío, el destino ocupado por el color correcto,
     y que no sobran piezas. NO registra la jugada (usa chess_commit). Parte de la posición de la partida ANTES de jugar."""
+    from chess_vision import verify_move
+
     cv = _vision()
     board = chess.Board(_game()["fen"])
     move = chess.Move.from_uci(uci)
     if move not in board.legal_moves:
         return {"ok": False, "motivo": f"jugada ilegal: {uci}"}
-    mover = board.piece_at(move.from_square)
-    seen = cv.read_squares(_grab(YOLO_CAM))
-    f, t = chess.square_name(move.from_square), chess.square_name(move.to_square)
-    problems = []
-    if f in seen:
-        problems.append(f"el origen {f} sigue ocupado ({seen[f][:2]})")
-    want = "w" if mover.color == chess.WHITE else "b"
-    if t not in seen:
-        problems.append(f"el destino {t} aparece vacío")
-    elif seen[t][0] != want:
-        problems.append(f"el destino {t} tiene color {seen[t][0]}, se esperaba {want}")
-    return {"ok": not problems, "problemas": problems, "nota": "YOLO puede perder piezas tapadas: confirma con chess_camera."}
+    ok, problems, warnings = verify_move(board, move, cv.read_squares(_grab(YOLO_CAM)))
+    return {"ok": ok, "problemas": problems, "avisos": warnings, "nota": "YOLO puede perder piezas tapadas: confirma con chess_camera."}
 
 
 # ------------------------------------------------------------------ partida
@@ -351,22 +331,78 @@ def chess_new(robot_white: bool = True) -> str:
 
 @mcp.tool()
 def chess_plan(uci: str) -> dict:
-    """Divide una jugada en pasos coger-y-soltar (captura primero al cementerio, enroque en dos pasos). Coordenadas = etiquetas
-    de la geometría de la SIM (no metros reales). No mueve nada ni registra la jugada."""
-    from chess_real import DryRunExecutor, RealChessBackend
+    """Divide una jugada en pasos coger-y-soltar (captura primero al cementerio, enroque en dos pasos). Coordenadas en METROS,
+    marco de la base, de hub/chess_board_real.json si existe (si no, de la sim; `geometria_real` lo indica). No mueve nada."""
+    from chess_real import DryRunExecutor, Geometry, RealChessBackend
 
     board = chess.Board(_game()["fen"])
     move = chess.Move.from_uci(uci)
-    steps = RealChessBackend(executor=DryRunExecutor(), verify=None).plan(move, board)
+    backend = RealChessBackend(executor=DryRunExecutor(), geometry=Geometry(), verify=None)
+    steps = backend.plan(move, board)
     names = {chess.PAWN: "peón", chess.KNIGHT: "caballo", chess.BISHOP: "alfil", chess.ROOK: "torre", chess.QUEEN: "dama", chess.KING: "rey"}
-    return {"uci": uci, "pasos": [{"label": s["label"], "pieza": names[s["piece"]], "src_xy": s["src_xy"], "dst_xy": s["dst_xy"],
-                                   "nota": s.get("note")} for s in steps]}
+    return {"uci": uci, "geometria": backend.geometry.name, "geometria_real": backend.geometry.real,
+            "pasos": [{"label": s["label"], "pieza": names[s["piece"]], "src_xy": s["src_xy"], "dst_xy": s["dst_xy"],
+                       "nota": s.get("note")} for s in steps]}
+
+
+@mcp.tool()
+def chess_move(uci: str, executor: str = "dry") -> dict:
+    """UNA llamada por jugada del robot (el "ir a h5" del diagrama): mapa -> coger la pieza -> soltar -> pose final -> foto
+    y verificación con la cámara. NO registra la jugada: mira la foto y, si está bien, llama a chess_commit.
+
+    executor: dry (por defecto, no mueve nada) | ik (IK + ACT genérico para agarrar) | ik-scripted (IK + agarre guionizado).
+    Los que mueven exigen ALLOW_REAL_MOTION=1 en el servidor Y el permiso con caducidad (real/authorize_motion.sh), y que el
+    usuario haya dado el SI para ESTA jugada. Claude nunca crea el permiso."""
+    from chess_real import Geometry, RealChessBackend, make_executor, moves_arm
+
+    board = chess.Board(_game()["fen"])
+    move = chess.Move.from_uci(uci)
+    if move not in board.legal_moves:
+        return {"status": "refused", "message": f"jugada ilegal: {uci}"}
+    if executor.lower() != "dry":  # el gate va ANTES de construir el ejecutor (que ya toca calibración y puerto)
+        ok, why = motion_permission()
+        if not ok:
+            return {"status": "blocked", "message": why}
+        global _robot
+        if _robot is not None:  # el ejecutor abre su propia conexión al puerto: libera la de las herramientas arm_*
+            _robot.disconnect()
+            _robot = None
+    try:
+        ex = make_executor(executor)
+    except (ValueError, RuntimeError, FileNotFoundError, OSError) as e:
+        return {"status": "error", "message": f"no se pudo preparar el ejecutor '{executor}': {e}"}
+    cv = None
+
+    def verify(m, before, after):
+        nonlocal cv
+        from chess_vision import verify_move
+
+        cv = cv or _vision()
+        img = _grab(YOLO_CAM)
+        FRAMES.mkdir(exist_ok=True)
+        cv2.imwrite(str(FRAMES / "chess_move_after.jpg"), _draw_overlay(img))
+        okv, problems, _ = verify_move(before, m, cv.read_squares(img))
+        return okv, problems
+
+    try:
+        backend = RealChessBackend(executor=ex, geometry=Geometry(require_real=moves_arm(ex)), verify=verify)
+        res = backend.execute(move, board)
+    except RuntimeError as e:
+        return {"status": "error", "message": str(e), "siguiente": "Para. No reenvíes comandos. Revisa el brazo (corte de alimentación a mano si algo va mal)."}
+    out = {"status": "ok" if res["board_ok"] else "verification_failed", "uci": uci, "executor": ex.name,
+           "pasos": res["steps"], "verificada": res["verified"], "problemas": res["bad_squares"]}
+    if res["verified"]:
+        out["foto"] = str(FRAMES / "chess_move_after.jpg")
+        out["siguiente"] = "chess_commit(uci) si la foto confirma la jugada." if res["board_ok"] else "NO registres: corrige las piezas a mano y vuelve a mirar con chess_see."
+    else:
+        out["siguiente"] = "Ensayo (dry): no se ha movido nada. Para ejecutar de verdad, repite con executor='ik' tras el SI del usuario."
+    return out
 
 
 @mcp.tool()
 def chess_commit(uci: str) -> str:
-    """Registra la jugada en la partida (úsalo SOLO tras verificarla con la cámara). Con el ejecutor dry: no mueve el brazo."""
-    return _cli("move", uci)
+    """Registra la jugada en la partida (el "registrar" del diagrama). Úsalo SOLO tras verificarla con la cámara. Nunca mueve el brazo."""
+    return _cli("commit", uci, "--who", "robot")
 
 
 # ------------------------------------------------------------------ brazo
@@ -400,7 +436,7 @@ def arm_jog(joint: str, delta_deg: float) -> dict:
 
 
 CAL_FOLLOWER = Path.home() / ".cache/huggingface/lerobot/calibration/robots/so_follower/so101_follower.json"
-MOVE_STEP_DEG = 2.0      # arm_move: nunca más de 2° por paso, aunque STEP_DEG sea mayor
+MOVE_STEP_DEG = min(2.0, STEP_DEG)  # arm_move: nunca más de 2° por paso
 MOVE_MAX_STEPS = 30      # arm_move: tramo corto; Claude mira la cámara y encadena llamadas
 STALL_STEPS = 6          # pasos sin avance (<0.3°) antes de dar el tramo por atascado
 
@@ -629,7 +665,7 @@ def chess_act_step(src: str, dst: str, seconds: float = 15.0, checkpoint: str = 
         act = step_policy(policy, pre, post, build_obs(policy, state, goal, frames), device, motors)
         robot.send_action(act)
         steps += 1
-        time.sleep(max(0.0, 1 / 30 - (time.perf_counter() - t)))
+        time.sleep(max(0.0, 1 / CFG.HZ - (time.perf_counter() - t)))
     return {"status": "done", "steps": steps, "seconds": round(time.time() - t0, 1), "src": src, "dst": dst,
             "siguiente": "Verifica con chess_verify_move."}
 

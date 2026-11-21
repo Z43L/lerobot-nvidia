@@ -14,10 +14,8 @@ import torch
 
 ROOT = Path(__file__).resolve().parent.parent
 CKPT = Path(os.environ.get("ACT_CKPT") or ROOT / "modeloACT" / "checkpoints" / "last" / "pretrained_model")
-DATASET_ROOT = Path(
-    "/Users/david/Library/Application Support/SenseCraft Robotics/backend-storage/"
-    "projects/proj_1cab77b0/datasets/ds_2e0c536efc"
-)
+# Dataset local de SenseCraft (opcional, solo para comparar con el entrenamiento). Sin ruta por defecto: ACT_DATASET_ROOT.
+DATASET_ROOT = Path(os.environ["ACT_DATASET_ROOT"]) if os.environ.get("ACT_DATASET_ROOT") else None
 DATASET_REPO = "local/data play tray 1"
 JOINTS = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 CAMERAS = {"front": "observation.images.front", "gripper": "observation.images.gripper"}

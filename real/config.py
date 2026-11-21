@@ -8,9 +8,32 @@ Uso típico (en el portátil del evento):
 """
 
 import os
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+ENV_LOCAL = ROOT / "real" / "env.local.sh"
+# Estas variables NO se cargan nunca desde un fichero: las pone el usuario en su terminal.
+_NEVER_FROM_FILE = {"ALLOW_REAL_MOTION"}
+
+
+def load_local_env(path: Path = ENV_LOCAL) -> dict[str, str]:
+    """Valores por defecto desde real/env.local.sh (sin ejecutar el shell). No pisa lo que ya esté en el entorno,
+    así que `export` en la terminal o `env` en .mcp.json siguen mandando. Es la ÚNICA fuente de puertos y cámaras."""
+    loaded: dict[str, str] = {}
+    if not path.exists():
+        return loaded
+    for line in path.read_text().splitlines():
+        m = re.match(r'\s*export\s+(\w+)=(?:"([^"]*)"|\'([^\']*)\'|(\S*))', line)
+        if m and m.group(1) not in _NEVER_FROM_FILE:
+            value = next(g for g in m.groups()[1:] if g is not None)
+            if value != "" and m.group(1) not in os.environ:
+                os.environ[m.group(1)] = value
+                loaded[m.group(1)] = value
+    return loaded
+
+
+load_local_env()
 DATASETS_DIR = ROOT / "real" / "datasets"
 CHECKPOINTS_DIR = ROOT / "real" / "checkpoints"
 
@@ -36,7 +59,7 @@ USE_DEGREES = True
 
 # Seguridad: máximo cambio de posición por paso de control (en unidades de LeRobot:
 # grados si USE_DEGREES, si no escala -100..100). LeRobot lo aplica en el seguidor.
-MAX_RELATIVE_TARGET = float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "5"))
+MAX_RELATIVE_TARGET = float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "2"))
 
 # Tareas del entrenamiento del checkpoint de referencia (texto exacto)
 DEFAULT_TASK = os.environ.get("SO101_TASK", "Pick up a cube and place in the bin")

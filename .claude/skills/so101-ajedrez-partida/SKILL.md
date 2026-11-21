@@ -1,6 +1,6 @@
 ---
 name: so101-ajedrez-partida
-description: Orquesta una partida de ajedrez entre el humano y el SO-101 (sim ahora, real en el futuro). Lleva el turno, valida las jugadas del humano, elige y ejecuta las del robot con so101-ajedrez-mover, y guarda la partida. Úsala cuando el usuario diga "juguemos al ajedrez", "nueva partida", "te toca", "juega tu jugada", "mi jugada es ..." o "estado de la partida".
+description: Orquesta una partida de ajedrez entre el humano y el SO-101 (sim o real). Lleva el turno, valida las jugadas del humano, elige y ejecuta las del robot con so101-ajedrez-mover, y guarda la partida. Úsala cuando el usuario diga "juguemos al ajedrez", "nueva partida", "te toca", "juega tu jugada", "mi jugada es ..." o "estado de la partida".
 ---
 
 # Partida de ajedrez con el SO-101
@@ -39,7 +39,7 @@ Antes de cada jugada del robot, si el usuario pide una partida con dificultad di
 - **Nunca** cambies el FEN a mano ni borres el historial para "arreglar" una partida. Si algo falla, `state` lo refleja; si hace falta reconstruir, hay que dejarlo registrado en el chat.
 - **Nunca** ejecutes una jugada del robot sin que sea su turno (el CLI lo bloquea de todos modos).
 - **Real:** cada jugada del robot con el brazo real se ejecuta directamente con `so101-ajedrez-real` (ver `so101-ajedrez-partida-real`).
-- Lo que no está probado en real se dice: el backend real no existe todavía (`CHESS_BACKEND=real` sale con error a propósito).
+- `CHESS_BACKEND=real` usa `sim/chess_real.py` (planifica y delega en un ejecutor, `CHESS_REAL_EXECUTOR`, `dry` por defecto). En real el humano mueve a mano: `human`/`human-seen` solo **registran**. Ver `so101-ajedrez-real`. Lo que no se ha probado con el brazo se dice.
 
 ## Estado de la prueba (sim)
 
@@ -50,4 +50,4 @@ Antes de cada jugada del robot, si el usuario pide una partida con dificultad di
 ## Cambiar el rival o el backend en el futuro
 
 - **Rival:** `engine_move` en `sim/chess_cli.py`. Se puede sustituir por Stockfish u otro motor sin tocar esta skill.
-- **Backend real:** ver el apartado "Paso a real" de `so101-ajedrez-mover`. Esta skill no cambia.
+- **Backend real:** `CHESS_BACKEND=real` (ver `so101-ajedrez-real`). Esta skill no cambia.
