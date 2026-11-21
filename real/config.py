@@ -17,6 +17,15 @@ ENV_LOCAL = ROOT / "real" / "env.local.sh"
 _NEVER_FROM_FILE: set[str] = set()
 
 
+def _expand(value: str) -> str:
+    """Expande ${VAR:-defecto}, ${VAR} y $VAR con el entorno actual, como haría `source`."""
+    def sub(m: re.Match) -> str:
+        name, default = m.group(1) or m.group(3), m.group(2)
+        cur = os.environ.get(name, "")
+        return cur if cur != "" or default is None else default
+    return re.sub(r"\$\{(\w+)(?::-([^}]*))?\}|\$(\w+)", sub, value)
+
+
 def load_local_env(path: Path = ENV_LOCAL) -> dict[str, str]:
     """Valores por defecto desde real/env.local.sh (sin ejecutar el shell). No pisa lo que ya esté en el entorno,
     así que `export` en la terminal o `env` en .mcp.json siguen mandando. Es la ÚNICA fuente de puertos y cámaras."""
@@ -27,6 +36,8 @@ def load_local_env(path: Path = ENV_LOCAL) -> dict[str, str]:
         m = re.match(r'\s*export\s+(\w+)=(?:"([^"]*)"|\'([^\']*)\'|(\S*))', line)
         if m and m.group(1) not in _NEVER_FROM_FILE:
             value = next(g for g in m.groups()[1:] if g is not None)
+            if m.group(3) is None:  # como el shell: sin expansión solo entre comillas simples
+                value = _expand(value)
             if value != "" and m.group(1) not in os.environ:
                 os.environ[m.group(1)] = value
                 loaded[m.group(1)] = value

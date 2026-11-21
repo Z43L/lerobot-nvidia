@@ -135,7 +135,10 @@ def stage2(args):
     import cv2
     from chess_vision import ChessVision, verify_move
 
-    cv = ChessVision()
+    # Las fotos etiquetadas se hicieron con la cámara en la posición de board_camara.json; la cámara en vivo usa la
+    # geometría configurada (hub/chess_config.py), la misma que el MCP.
+    cv = ChessVision(geometry=ROOT / "vision" / "board_camara.json", weights=CFG.YOLO_WEIGHTS)
+    cv_live = ChessVision(geometry=CFG.BOARD_GEOMETRY, weights=CFG.YOLO_WEIGHTS)
     # 2a. fotos de validación con posición conocida
     pos_dir = ROOT / "vision" / "dataset_camara" / "positions"
     files = sorted(pos_dir.glob("*.json")) if pos_dir.exists() else []
@@ -176,7 +179,7 @@ def stage2(args):
     if args.camera is None:
         record(2, "lectura del tablero en vivo", "SKIP", "usa --camera N con el tablero en posición inicial", "FEN inicial, <= 3 dudosas")
     else:
-        seen = cv.read_squares(__import__("chess_vision").capture(args.camera))
+        seen = cv_live.read_squares(__import__("chess_vision").capture(args.camera))
         exp = ChessVision.board_to_squares(chess.Board())
         bad = [s for s in sorted(set(exp) | set(seen)) if exp.get(s) != (seen[s][:2] if s in seen else None)]
         record(2, "lectura del tablero en vivo", "PASS" if len(bad) <= 3 else "FAIL",

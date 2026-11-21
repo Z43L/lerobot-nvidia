@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 import chess
@@ -191,7 +192,13 @@ def verify_move(board_before: chess.Board, move: chess.Move, seen: dict) -> tupl
 
 def capture(index: int) -> np.ndarray:
     cap = cv2.VideoCapture(index)
-    ok, frame = cap.read() if cap.isOpened() else (False, None)
+    ok, frame = False, None
+    if cap.isOpened():  # las primeras imágenes salen negras o sin exposición: descarta unas cuantas
+        for _ in range(15):
+            got, img = cap.read()
+            if got:
+                ok, frame = True, img
+            time.sleep(0.03)
     cap.release()
     if not ok:
         raise SystemExit(f"No se pudo leer la cámara {index}. Revisa el permiso de cámara de la app y el índice (real/find_cameras.py).")
