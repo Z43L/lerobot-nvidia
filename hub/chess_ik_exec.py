@@ -365,19 +365,31 @@ class ACTWindow:
         self.motors = [f"{k}.pos" for k in STATE_KEYS]
         self.cams = {"front": CFG.YOLO_CAM, "gripper": CFG.WRIST_CAM}
 
+    _caps: dict = {}
+
     def frames(self) -> dict[str, np.ndarray]:
+        """Lee las dos camaras. Las deja ABIERTAS (abrir una camara en macOS tarda ~1-3 s: abrir/cerrar en cada paso dejaba
+        al ACT en 1 paso cada 8 s). Se descarta un fotograma del buffer para no usar uno viejo."""
         from deploy_act_generic import to_act_size
 
         out = {}
         for k, i in self.cams.items():
-            c = cv2.VideoCapture(i)
-            for _ in range(3):
-                ok, f = c.read()
-            c.release()
+            c = self._caps.get(i)
+            if c is None or not c.isOpened():
+                c = self._caps[i] = cv2.VideoCapture(i)
+                for _ in range(5):
+                    c.read()
+            c.grab()
+            ok, f = c.read()
             if not ok:
                 raise RuntimeError(f"la camara {i} no devuelve imagen")
             out[k] = to_act_size(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
         return out
+
+    def close(self) -> None:
+        for c in self._caps.values():
+            c.release()
+        self._caps.clear()
 
     def action(self, state6: np.ndarray, frames: dict) -> np.ndarray:
         from deploy_act_generic import build_obs
@@ -394,6 +406,7 @@ class ACTWindow:
     def run(self, arm: Arm, a4, g4, seconds: float) -> dict:
         lo, hi = self.envelope(np.asarray(a4), np.asarray(g4))
         roll = arm.joints()[4]
+        self.action(arm.joints(), self.frames())   # calentamiento: la 1a inferencia en mps tarda ~9 s (no cuenta en la ventana)
         self.policy.reset()
         clamped = steps = 0
         t_end = time.time() + seconds
@@ -466,7 +479,7 @@ class IKExecutor:
 
         arm.goto(q6(wp[1], op))                     # encima del origen, pinza abierta
         if self.grasp == "act":
-            why_not = act_grip_problem(self.checkpoint)
+            why_not = act_grip_problem(self.checkpoint, grip_open=op)
             if why_not:
                 raise RuntimeError(f"No se usa el ACT: {why_not}")
             # Ventana del ACT de 30k confinada a la caja encima->agarre (+-ENVELOPE_MARGIN). Luego la IK termina de bajar.
