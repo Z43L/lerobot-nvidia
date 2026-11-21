@@ -23,7 +23,7 @@ Desde la raíz del proyecto, con `.venv312`:
 Para la partida completa (humano y robot con turnos) usa `so101-ajedrez-partida`. `move` y `render` sirven para probar esta skill sola.
 
 Variables:
-- `CHESS_BACKEND=sim` (por defecto). `real` todavía no existe y el comando sale con error.
+- `CHESS_BACKEND=sim` (por defecto) o `real` (`sim/chess_real.py`: planifica y delega en `CHESS_REAL_EXECUTOR`, `dry` por defecto). Mover el brazo real se hace con `so101-ajedrez-real`, no con esta skill.
 - `SO101_GRASP=attach` (el CLI lo pone por defecto): **enganche temporal**. En la sim la pinza no coge por fricción; la ficha se engancha al TCP al cerrar la pinza y se suelta al abrirla. Ver `so101-sim-objects` / `sim/objects_env.py`.
 
 ## Sistema de coordenadas
@@ -56,14 +56,14 @@ Resultado: `{uci, steps, board_ok, bad_squares, fen}`.
 - **Fichas:** no colisionan con la pinza ni entre sí. La geometría de cada ficha (radio y altura) es aproximada.
 - **Agarre:** es el enganche temporal. No se valida que la ficha se sostenga por fricción; no es un agarre real.
 
-## Paso a real (cuando tengamos el brazo y el tablero reales)
+## Paso a real
 
-Hoy no hay nada de esto; es el plan para el día que lo digas.
+Ya existe el backend (`RealChessBackend`), la calibración por contacto (`hub/chess_board_real.json`) y el ejecutor IK (`hub/chess_ik_exec.py`). Lo que sigue son notas de diseño; el flujo vigente está en `so101-ajedrez-real`. Pendiente de medir con el brazo: agarre por tipo de pieza.
 
 1. **Calibración del tablero real:** la cámara de mesa (`hub/hand_calibration.py`) con marcadores en las esquinas del tablero. Hay que extender el script para las 64 casillas, o usar una homografía del tablero completo, y escribir `hub/chess_board.json` con `"source": "real"` y `"status"` con la fecha de la calibración.
 2. **Poses de agarre por tipo de ficha:** el usuario enseña cada pose con el brazo líder y se graban con **`so101-grabacion-maestra`** (graba, convierte a keyframes, valida, practica en la sim y genera la skill `motion-<nombre>`). Una pose por tipo (peón, caballo, alfil, torre, dama, rey) y una altura de agarre por tipo.
 3. **Mapeo sim → real:** la skill `so101-grabacion-maestra` corrige las poses de la sim con las del real: los keyframes grabados en real sustituyen a los estimados por IK, y los offsets (`sag`, zona de agarre) se anotan en `hub/chess_board.json`.
-4. **Backend real:** implementar `RealChessBackend` en `sim/chess_real.py` con la misma interfaz que `ChessSim.execute` (ver docstring). Sin enganche: el agarre es por fricción, y hay que medir anchura y fuerza.
+4. **Backend real:** `RealChessBackend` en `sim/chess_real.py` (misma interfaz que `ChessSim.execute`). Sin enganche: el agarre es por fricción, y hay que medir anchura y fuerza.
 5. **Seguridad:** igual que `so101-real-control`. Preview por movimiento, confirmación explícita del usuario, `SO101_MAX_RELATIVE_TARGET=2` al empezar, área libre y persona junto al brazo.
 
 Al pasar a real, esta skill no se reescribe: se cambian `CHESS_BACKEND`, `hub/chess_board.json` y el backend. Las demás skills (la orquestadora, el CLI) no cambian.

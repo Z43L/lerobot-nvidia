@@ -1,5 +1,6 @@
 # Entornos virtuales (muy grandes, se recrean con pip)
 .venv/
+.venv312
 .venv312/
 
 # Datos y modelos generados (no se suben)

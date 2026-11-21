@@ -66,7 +66,9 @@ NO probado: cualquier movimiento del brazo real, la cámara en vivo (sin permiso
 
 ## MCP `so101-chess` (Claude orquesta cámaras + YOLO + reglas + brazo + ACT)
 
-Servidor `hub/chess_mcp.py` (en `.mcp.json`; hay que reiniciar Claude Code para que cargue). Cámara de YOLO = índice 0, muñeca = 2, esquinas en `vision/board_camara0.json`.
+Servidor `hub/chess_mcp.py` (registrado en `.mcp.json`; hay que reiniciar Claude Code para que cargue). **Toda la configuración sale de `hub/chess_config.py`**: entorno > `real/env.local.sh` > defecto. Cámaras: `CHESS_YOLO_CAM`/`SO101_TOP_CAM` y `CHESS_WRIST_CAM`/`SO101_WRIST_CAM`; esquinas en `CHESS_BOARD_GEOMETRY` (por defecto `vision/board_camara0.json`); pesos en `CHESS_YOLO_WEIGHTS`; ACT en `CHESS_ACT_CHECKPOINT`; puerto en `SO101_FOLLOWER_PORT` (sin defecto). `ALLOW_REAL_MOTION` no está en ningún fichero: lo exporta el usuario.
+
+**Camino principal (una llamada por jugada, el diagrama de secuencia): `chess_move(uci, executor)`.** `dry` por defecto. Con `ik` o `ik-scripted` exige `ALLOW_REAL_MOTION=1`, el permiso con caducidad y el SI del usuario para esa jugada; devuelve foto y verificación, y **no registra**: tras mirar la foto, `chess_commit` (el "registrar", que nunca mueve nada).
 - Sin movimiento: `chess_cameras`, `chess_camera(overlay)`, `chess_see`, `chess_square_px`, `chess_verify_move`, `chess_state`, `chess_new`, `chess_plan`, `chess_commit`, `arm_state` (conecta el brazo y mantiene la pose), `arm_gripper_px`.
 - Mueven el brazo: `arm_jog`, `arm_probe`, `arm_servo(execute=True)`, `chess_act_step`. Exigen `ALLOW_REAL_MOTION=1` **y** un permiso con caducidad que crea el usuario: `! real/authorize_motion.sh <min>` (`... 0` revoca; `arm_stop` también). Claude nunca crea ese permiso.
 - Flujo de una jugada: `chess_see` -> `chess_plan` -> (permiso) `arm_probe` una vez -> `arm_servo` en bucle mirando `chess_camera` -> `chess_act_step` (solo con ACT con objetivo) -> `chess_verify_move` -> `chess_commit`.

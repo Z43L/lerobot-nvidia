@@ -38,6 +38,9 @@ Proyecto: simulación MuJoCo y brazo real SO-101 controlados por SmolVLA y un se
 - `GUIA_SO101.md`: guía de uso general (anterior al pipeline ACT).
 - `real/README.md`, `sim/README.md`: detalles de cada parte.
 - `.claude/skills/`: flujos paso a paso para Claude (hardware, sim, VLA, MPS, evento, pipeline ACT).
+- `pipeline/GUIA_HOST_AJEDREZ.md`: lanzar y validar el ajedrez real en el host (`pipeline/host_validate.sh`, peldaños con criterio).
+- `pipeline/MODELOS_ACT.md`: los ACT disponibles (HF 30k entrenado en CUDA, local 25k en MPS), cómo cargarlos en el Mac y cómo copiarlos al host.
+- Configuración del ajedrez real: solo en `hub/chess_config.py` (entorno > `real/env.local.sh` > defecto). No escribas puertos, cámaras ni rutas de pesos en otros módulos.
 
 ## Modo hackathon: qué hacer en cada momento
 

@@ -17,6 +17,7 @@ tablero hay que volver a medirlas (vision/board_corners.py). Detector: runs/dete
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,9 +27,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-DEFAULT_WEIGHTS = ROOT / "runs/detect/vision/runs/piezas_camara_v2/weights/best.pt"  # v1: .../piezas_camara/weights/best.pt
-import os  # noqa: E402
-
+DEFAULT_WEIGHTS = Path(os.environ.get("CHESS_YOLO_WEIGHTS", ROOT / "runs/detect/vision/runs/piezas_camara_v2/weights/best.pt"))
 DEFAULT_GEOMETRY = Path(os.environ["CHESS_BOARD_GEOMETRY"]) if os.environ.get("CHESS_BOARD_GEOMETRY") else HERE / "board_camara.json"
 FILES = "abcdefgh"
 LABEL = {
@@ -148,6 +147,46 @@ class ChessVision:
                     row += p[1] if p[0] == "w" else p[1].lower()
             rows.append(row + (str(empty) if empty else ""))
         return "/".join(rows)
+
+
+def verify_move(board_before: chess.Board, move: chess.Move, seen: dict) -> tuple[bool, list[str], list[str]]:
+    """Comprueba con lo visto que la jugada ya está hecha. Devuelve (ok, problemas, avisos).
+
+    Bloquea por: origen que sigue ocupado, destino vacío o de otro color, tipo equivocado con confianza >= 0,8
+    (salvo promoción), casilla capturada que sigue ocupada y piezas de más con confianza >= 0,5.
+    Piezas esperadas que no se ven solo avisan (oclusiones). No registra nada.
+    """
+    after = board_before.copy()
+    after.push(move)
+    expected = ChessVision.board_to_squares(after)
+    name = chess.square_name
+    problems: list[str] = []
+    warnings: list[str] = []
+    vacated = {name(move.from_square)}
+    if board_before.is_castling(move):
+        rank = chess.square_rank(move.from_square)
+        vacated.add(name(chess.square(7 if chess.square_file(move.to_square) == 6 else 0, rank)))
+    if board_before.is_en_passant(move):
+        vacated.add(name(chess.square(chess.square_file(move.to_square), chess.square_rank(move.from_square))))
+    for sq in sorted(vacated):
+        if sq in seen and sq not in expected:
+            problems.append(f"{sq} debería estar vacía y se ve {seen[sq][:2]}")
+    dest = name(move.to_square)
+    want = expected[dest]
+    if dest not in seen:
+        problems.append(f"el destino {dest} aparece vacío")
+    else:
+        color, kind, conf = seen[dest]
+        if color != want[0]:
+            problems.append(f"el destino {dest} tiene color {color}, se esperaba {want[0]}")
+        elif kind != want[1] and conf >= 0.8 and not move.promotion:
+            problems.append(f"el destino {dest} tiene {kind}, se esperaba {want[1]} (conf {conf:.2f})")
+    for sq, (color, kind, conf) in sorted(seen.items()):
+        if sq not in expected and sq not in vacated and conf >= 0.5:
+            problems.append(f"pieza de más en {sq}: {color}{kind} (conf {conf:.2f})")
+    for sq in sorted(set(expected) - set(seen)):
+        warnings.append(f"no se ve la pieza esperada en {sq}")
+    return not problems, problems, warnings
 
 
 def capture(index: int) -> np.ndarray:
