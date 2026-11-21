@@ -1,0 +1,310 @@
+[
+  {
+    "stage": 0,
+    "check": "paquete torch",
+    "status": "PASS",
+    "detail": "2.15.0",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete lerobot",
+    "status": "PASS",
+    "detail": "0.7.0",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete cv2",
+    "status": "PASS",
+    "detail": "5.1.0",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete chess",
+    "status": "PASS",
+    "detail": "1.2.0",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete mcp",
+    "status": "PASS",
+    "detail": "",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete serial",
+    "status": "PASS",
+    "detail": "3.5",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete numpy",
+    "status": "PASS",
+    "detail": "2.2.6",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete mujoco",
+    "status": "PASS",
+    "detail": "4.0.1",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "paquete ultralytics",
+    "status": "PASS",
+    "detail": "8.4.215",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "MPS (GPU de Apple)",
+    "status": "PASS",
+    "detail": "disponible",
+    "criterion": ""
+  },
+  {
+    "stage": 0,
+    "check": "tests de ajedrez real",
+    "status": "PASS",
+    "detail": "8 OK",
+    "criterion": "8 pruebas OK"
+  },
+  {
+    "stage": 0,
+    "check": "límite de paso",
+    "status": "PASS",
+    "detail": "2.0°/paso",
+    "criterion": "<= 2 (AGENTS.md)"
+  },
+  {
+    "stage": 1,
+    "check": "puertos USB serie",
+    "status": "PASS",
+    "detail": "/dev/cu.usbmodem5AB01585131, /dev/cu.usbmodem5B610353951",
+    "criterion": ">= 1 (seguidor)"
+  },
+  {
+    "stage": 1,
+    "check": "puerto del seguidor existe",
+    "status": "PASS",
+    "detail": "/dev/cu.usbmodem5B610353951",
+    "criterion": "el fichero existe"
+  },
+  {
+    "stage": 1,
+    "check": "calibración del seguidor",
+    "status": "PASS",
+    "detail": "/Users/david/.cache/huggingface/lerobot/calibration/robots/so_follower/so101_follower.json",
+    "criterion": "existe"
+  },
+  {
+    "stage": 1,
+    "check": "cámara de YOLO (índice 0)",
+    "status": "PASS",
+    "detail": "1280x960",
+    "criterion": "devuelve imagen"
+  },
+  {
+    "stage": 1,
+    "check": "cámara de muñeca (índice 2)",
+    "status": "PASS",
+    "detail": "1920x1080",
+    "criterion": "devuelve imagen"
+  },
+  {
+    "stage": 2,
+    "check": "pesos de YOLO",
+    "status": "PASS",
+    "detail": "runs/detect/vision/runs/piezas_camara_v2/weights/best.pt",
+    "criterion": "existe"
+  },
+  {
+    "stage": 2,
+    "check": "esquinas del tablero en píxeles",
+    "status": "PASS",
+    "detail": "board_camara0.json",
+    "criterion": "existe"
+  },
+  {
+    "stage": 2,
+    "check": "validación con fotos etiquetadas",
+    "status": "PASS",
+    "detail": "86 fotos: recall 0.96, precisión 0.99, exactas 36/86",
+    "criterion": "recall y precisión >= 0,90"
+  },
+  {
+    "stage": 2,
+    "check": "verify_move: acepta la jugada hecha y rechaza la no hecha",
+    "status": "PASS",
+    "detail": "hecha=True, no hecha=False",
+    "criterion": "True / False"
+  },
+  {
+    "stage": 2,
+    "check": "lectura del tablero en vivo",
+    "status": "FAIL",
+    "detail": "31 casillas distintas de la posición inicial: ['a1', 'a8', 'b1', 'b2', 'b3', 'b8', 'c1', 'c2']",
+    "criterion": "<= 3 casillas dudosas"
+  },
+  {
+    "stage": 3,
+    "check": "calibración real",
+    "status": "PASS",
+    "detail": "status=real, 2026-11-21T14:16:33",
+    "criterion": "status=real"
+  },
+  {
+    "stage": 3,
+    "check": "error de ajuste (RMS)",
+    "status": "PASS",
+    "detail": "2.63 mm",
+    "criterion": "<= 5 mm"
+  },
+  {
+    "stage": 3,
+    "check": "validación cruzada (peor toque)",
+    "status": "PASS",
+    "detail": "11.1 mm (~1/3 de casilla = 10 mm)",
+    "criterion": "<= 12 mm"
+  },
+  {
+    "stage": 3,
+    "check": "tamaño de casilla",
+    "status": "PASS",
+    "detail": "30.4 mm",
+    "criterion": "25-40 mm"
+  },
+  {
+    "stage": 3,
+    "check": "pose de origen",
+    "status": "PASS",
+    "detail": "hub/chess_home.json",
+    "criterion": "existe"
+  },
+  {
+    "stage": 3,
+    "check": "alcance IK de las 64 casillas (peón)",
+    "status": "PASS",
+    "detail": "sin solución: ninguna; a <1° de un límite: ninguna",
+    "criterion": "64/64 con margen >= 1°"
+  },
+  {
+    "stage": 5,
+    "check": "hf-30k-cuda: carga en mps",
+    "status": "PASS",
+    "detail": "entrenado en cuda",
+    "criterion": "carga sin error"
+  },
+  {
+    "stage": 5,
+    "check": "hf-30k-cuda: predicción",
+    "status": "PASS",
+    "detail": "0.09 s/chunk, gripper 5.4",
+    "criterion": "finita, pinza 0-100"
+  },
+  {
+    "stage": 5,
+    "check": "hf-30k-cuda: apertura de aproximación dentro de lo entrenado",
+    "status": "PASS",
+    "detail": "máx. de GRIP_APPROACH por pieza=17 dentro de 1.6-32.3",
+    "criterion": "apertura de acercamiento <= máx. entrenado + 2"
+  },
+  {
+    "stage": 5,
+    "check": "hf-30k-cuda: error offline",
+    "status": "SKIP",
+    "detail": "no hay dataset en /Users/david/data-play-tray-1-clean (ACT_EVAL_DATASET)",
+    "criterion": "<= 5° de media"
+  },
+  {
+    "stage": 5,
+    "check": "local-25k-mps: carga en mps",
+    "status": "PASS",
+    "detail": "entrenado en mps",
+    "criterion": "carga sin error"
+  },
+  {
+    "stage": 5,
+    "check": "local-25k-mps: predicción",
+    "status": "PASS",
+    "detail": "0.07 s/chunk, gripper 3.4",
+    "criterion": "finita, pinza 0-100"
+  },
+  {
+    "stage": 5,
+    "check": "local-25k-mps: apertura de aproximación dentro de lo entrenado",
+    "status": "PASS",
+    "detail": "máx. de GRIP_APPROACH por pieza=17 dentro de 1.6-32.3",
+    "criterion": "apertura de acercamiento <= máx. entrenado + 2"
+  },
+  {
+    "stage": 5,
+    "check": "local-25k-mps: error offline",
+    "status": "SKIP",
+    "detail": "no hay dataset en /Users/david/data-play-tray-1-clean (ACT_EVAL_DATASET)",
+    "criterion": "<= 5° de media"
+  },
+  {
+    "stage": 4,
+    "check": "partida por la CLI (backend real, dry)",
+    "status": "PASS",
+    "detail": "6 jugadas registradas",
+    "criterion": "6 jugadas, historial coherente"
+  },
+  {
+    "stage": 4,
+    "check": "plan en metros de la calibración real",
+    "status": "PASS",
+    "detail": "geometría chess_board_real.json",
+    "criterion": "geometria_real=true"
+  },
+  {
+    "stage": 4,
+    "check": "backend sim (regresión)",
+    "status": "PASS",
+    "detail": "e4 + respuesta del robot",
+    "criterion": "ambas jugadas"
+  },
+  {
+    "stage": 4,
+    "check": "MCP: herramientas registradas",
+    "status": "PASS",
+    "detail": "21; faltan ninguna",
+    "criterion": "todas las esperadas"
+  },
+  {
+    "stage": 4,
+    "check": "MCP: chess_move dry",
+    "status": "PASS",
+    "detail": "ok",
+    "criterion": "ok, sin mover"
+  },
+  {
+    "stage": 4,
+    "check": "MCP: rechaza jugada ilegal",
+    "status": "PASS",
+    "detail": "refused",
+    "criterion": "refused"
+  },
+  {
+    "stage": 4,
+    "check": "MCP: la verificación no mueve el brazo (parada forzada)",
+    "status": "PASS",
+    "detail": "blocked: parada activada (ALLOW_REAL_MOTION=0).",
+    "criterion": "blocked con ALLOW_REAL_MOTION=0"
+  },
+  {
+    "stage": 4,
+    "check": "MCP: registrar tras verificar",
+    "status": "PASS",
+    "detail": "historial con e4",
+    "criterion": "e4 registrada"
+  }
+]

@@ -1,0 +1,60 @@
+
+[0] Entorno
+  ✅ paquete torch  — 2.15.0
+  ✅ paquete lerobot  — 0.7.0
+  ✅ paquete cv2  — 5.1.0
+  ✅ paquete chess  — 1.2.0
+  ✅ paquete mcp
+  ✅ paquete serial  — 3.5
+  ✅ paquete numpy  — 2.2.6
+  ✅ paquete mujoco  — 4.0.1
+  ✅ paquete ultralytics  — 8.4.215
+  ✅ MPS (GPU de Apple)  — disponible
+  ✅ tests de ajedrez real  — 8 OK
+  ✅ límite de paso  — 2.0°/paso
+
+[1] Hardware (solo lectura)
+  ✅ puertos USB serie  — /dev/cu.usbmodem5AB01585131, /dev/cu.usbmodem5B610353951
+  ✅ puerto del seguidor existe  — /dev/cu.usbmodem5B610353951
+  ✅ calibración del seguidor  — /Users/david/.cache/huggingface/lerobot/calibration/robots/so_follower/so101_follower.json
+  ✅ cámara de YOLO (índice 0)  — 1280x960
+  ✅ cámara de muñeca (índice 2)  — 1920x1080
+
+[2] Visión
+  ✅ pesos de YOLO  — runs/detect/vision/runs/piezas_camara_v2/weights/best.pt
+  ✅ esquinas del tablero en píxeles  — board_camara0.json
+  ✅ validación con fotos etiquetadas  — 86 fotos: recall 0.96, precisión 0.99, exactas 36/86
+  ✅ verify_move: acepta la jugada hecha y rechaza la no hecha  — hecha=True, no hecha=False
+  ⏭️  lectura del tablero en vivo  — usa --camera N con el tablero en posición inicial
+
+[3] Mapa del tablero y cinemática (sin mover)
+  ✅ calibración real  — status=real, 2026-11-21T14:16:33
+  ✅ error de ajuste (RMS)  — 2.63 mm
+  ✅ validación cruzada (peor toque)  — 11.1 mm (~1/3 de casilla = 10 mm)
+  ✅ tamaño de casilla  — 30.4 mm
+  ✅ pose de origen  — hub/chess_home.json
+  ✅ alcance IK de las 64 casillas (peón)  — sin solución: ninguna; a <1° de un límite: ninguna
+
+[models] ACT genérico: ¿carga y predice en ESTE dispositivo? (un checkpoint de CUDA debe cargar en un Mac)
+Loading weights from local directory
+  ✅ hf-30k-cuda: carga en mps  — entrenado en cuda
+  ✅ hf-30k-cuda: predicción  — 0.16 s/chunk, gripper 5.4
+  ✅ hf-30k-cuda: apertura de aproximación dentro de lo entrenado  — máx. de GRIP_APPROACH por pieza=17 dentro de 1.6-32.3
+  ⏭️  hf-30k-cuda: error offline  — no hay dataset en /Users/david/data-play-tray-1-clean (ACT_EVAL_DATASET)
+Loading weights from local directory
+  ✅ local-25k-mps: carga en mps  — entrenado en mps
+  ✅ local-25k-mps: predicción  — 0.20 s/chunk, gripper 3.4
+  ✅ local-25k-mps: apertura de aproximación dentro de lo entrenado  — máx. de GRIP_APPROACH por pieza=17 dentro de 1.6-32.3
+  ⏭️  local-25k-mps: error offline  — no hay dataset en /Users/david/data-play-tray-1-clean (ACT_EVAL_DATASET)
+
+[4] Ensayo en dry (sin mover)
+  ✅ partida por la CLI (backend real, dry)  — 6 jugadas registradas
+  ✅ plan en metros de la calibración real  — geometría chess_board_real.json
+  ✅ backend sim (regresión)  — e4 + respuesta del robot
+  ✅ MCP: herramientas registradas  — 21; faltan ninguna
+  ✅ MCP: chess_move dry  — ok
+  ✅ MCP: rechaza jugada ilegal  — refused
+  ✅ MCP: la verificación no mueve el brazo (parada forzada)  — blocked: parada activada (ALLOW_REAL_MOTION=0).
+  ✅ MCP: registrar tras verificar  — historial con e4
+
+RESUMEN: 41 PASS, 0 FAIL, 3 SKIP (un SKIP no está comprobado)

@@ -1,0 +1,27 @@
+
+[0] Entorno
+  ✅ paquete torch  — 2.15.0
+  ✅ paquete lerobot  — 0.7.0
+  ✅ paquete cv2  — 5.1.0
+  ✅ paquete chess  — 1.2.0
+  ✅ paquete mcp
+  ✅ paquete serial  — 3.5
+  ✅ paquete numpy  — 2.2.6
+  ✅ paquete mujoco  — 4.0.1
+  ✅ paquete ultralytics  — 8.4.215
+  ✅ MPS (GPU de Apple)  — disponible
+  ✅ tests de ajedrez real  — 8 OK
+  ✅ límite de paso  — 2.0°/paso
+
+[1] Hardware (solo lectura)
+  ✅ puertos USB serie  — /dev/cu.usbmodem5AB01585131, /dev/cu.usbmodem5B610353951
+  ✅ puerto del seguidor existe  — /dev/cu.usbmodem5B610353951
+  ✅ calibración del seguidor  — /Users/david/.cache/huggingface/lerobot/calibration/robots/so_follower/so101_follower.json
+  ❌ cámara de YOLO (índice 0)  — el índice 0 no abre o no da imagen (¿permiso de cámara de macOS?)
+  ✅ cámara de muñeca (índice 2)  — 1920x1080
+
+[2] Visión
+  ✅ pesos de YOLO  — runs/detect/vision/runs/piezas_camara_v2/weights/best.pt
+  ✅ esquinas del tablero en píxeles  — board_camara0.json
+  ✅ validación con fotos etiquetadas  — 86 fotos: recall 0.96, precisión 0.99, exactas 36/86
+  ✅ verify_move: acepta la jugada hecha y rechaza la no hecha  — hecha=True, no hecha=False
