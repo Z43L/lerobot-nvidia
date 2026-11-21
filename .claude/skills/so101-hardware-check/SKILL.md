@@ -18,7 +18,8 @@ Objetivo: confirmar que el brazo, el líder y las cámaras están listos, sin mo
    - `Puertos USB-serie detectados: ninguno` → el brazo no está enchufado o falta el cable de datos. Pide revisar el USB.
    - `No hay calibración` → ejecuta `real/calibrate.sh` (pide confirmación al usuario, porque mueve articulaciones) o pide al organizador el fichero de calibración.
    - `no responde` en una cámara (incluida la cámara `table` si `SO101_TABLE_CAM` está configurada) → revisa el índice (`SO101_TOP_CAM`, `SO101_WRIST_CAM`) y el permiso de cámara de la Terminal en Ajustes del Sistema.
-4. Si todo está en `OK`, dilo claramente. Si algo falla, di qué falla y qué debe hacer el usuario; no lo arregles cambiando calibraciones por tu cuenta.
+4. Calibración en uso: indica la ruta y la fecha de los ficheros de `~/.cache/huggingface/lerobot/calibration/` (seguidor y líder). Si la fecha es posterior a la última comprobación, avisa al usuario de que la calibración ha cambiado y vuelve a comprobar posiciones.
+5. Si todo está en `OK`, dilo claramente. Si algo falla, di qué falla y qué debe hacer el usuario; no lo arregles cambiando calibraciones por tu cuenta.
 
 ## Reglas
 - No muevas el brazo en esta skill. `check_hardware.py` solo lee.

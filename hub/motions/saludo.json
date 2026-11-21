@@ -1,0 +1,73 @@
+{
+  "name": "saludo",
+  "description": "Saludo con la muñeca y la pinza, con el brazo levantado",
+  "units": "degrees",
+  "keyframes": [
+    {
+      "deg": [
+        0.0,
+        -34.4,
+        51.6,
+        34.4,
+        0.0,
+        86.0
+      ],
+      "note": "Brazo levantado, pinza abierta"
+    },
+    {
+      "deg": [
+        0.0,
+        -34.4,
+        51.6,
+        34.4,
+        45.8,
+        19.5
+      ],
+      "note": "Muñeca a +45°"
+    },
+    {
+      "deg": [
+        0.0,
+        -34.4,
+        51.6,
+        34.4,
+        -45.8,
+        86.0
+      ],
+      "note": "Muñeca a -45°"
+    },
+    {
+      "deg": [
+        0.0,
+        -34.4,
+        51.6,
+        34.4,
+        45.8,
+        19.5
+      ],
+      "note": "Muñeca a +45° (2ª)"
+    },
+    {
+      "deg": [
+        0.0,
+        -34.4,
+        51.6,
+        34.4,
+        -45.8,
+        86.0
+      ],
+      "note": "Muñeca a -45° (2ª)"
+    },
+    {
+      "deg": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "note": "Reposo"
+    }
+  ]
+}

@@ -239,9 +239,11 @@ if __name__ == "__main__":
         import time
 
         arm.attach_viewer(realtime=True)
+        arm.guard()  # las herramientas del MCP toman el cerrojo; el visor también
         threading.Thread(target=mcp.run, daemon=True).start()
         while arm.viewer.is_running():
-            arm.viewer.sync()
+            with arm.lock:
+                arm.viewer.sync()
             time.sleep(0.03)
     else:
         mcp.run()

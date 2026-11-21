@@ -21,3 +21,12 @@ real/env.local.sh
 # Cachés de Python
 __pycache__/
 *.pyc
+
+# Fotos de cámara y estado local (pueden contener personas o partidas en curso)
+hub/frames/
+hub/recordings/
+hub/chess_game.json
+
+# Log de MuJoCo y escena de ajedrez generada en cada ejecución
+MUJOCO_LOG.TXT
+sim/so101/scene_chess.xml
