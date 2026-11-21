@@ -73,13 +73,6 @@ class RealArm:
         self.has_table = config.TABLE_CAM >= 0
         self._vlas: dict[str, object] = {}
 
-    def policy_for(self, disk: str) -> str:
-        """Checkpoint del VLA de ese color: variable SO101_HANOI_VLA_<COLOR> (carpeta pretrained_model)."""
-        path = os.environ.get(f"SO101_HANOI_VLA_{disk.upper()}")
-        if not path:
-            raise RuntimeError(f"Falta SO101_HANOI_VLA_{disk.upper()} con el checkpoint del VLA de {disk}")
-        return path
-
     # ------------------------------------------------------------ estado
     def _obs(self) -> dict:
         self._last_obs = self.robot.get_observation()
@@ -128,12 +121,6 @@ class RealArm:
         # Reposo: 0 grados = centro del rango calibrado (LeRobot). Confírmalo con el brazo y el espacio libre.
         return self.move_joints([0, 0, 0, 0, 0, 10])
 
-    def grip_update(self, grip_rad: float) -> None:  # interfaz común con sim (no aplica en real)
-        return None
-
-    def get_hanoi_state(self) -> dict:  # interfaz común con sim (el real usa real/hanoi_board.py)
-        raise NotImplementedError("El estado de la torre en real lo lleva real/hanoi_board.py")
-
     # ------------------------------------------------------------- cámara
     def render(self, camera: str = "top") -> Path:
         obs = self._obs()
@@ -146,14 +133,14 @@ class RealArm:
         return path
 
     # -------------------------------------------------------------- VLA
-    def run_skill(self, instruction: str, seconds: float = 20.0, repo_id: str | None = None) -> dict:
+    def run_skill(self, instruction: str, seconds: float = 20.0) -> dict:
         """Ejecuta el VLA en el brazo real, dentro de este proceso (real/real_vla.py).
         Requiere ALLOW_REAL_MOTION=1. Corta por tiempo; no hay sensor de éxito: la verificación es visual."""
         if not self.motion_allowed():
             return dict(self.BLOCKED)
         from real_vla import RealVLARunner
 
-        repo = repo_id or os.environ.get("SO101_POLICY", config.REFERENCE_POLICY)
+        repo = os.environ.get("SO101_POLICY", config.REFERENCE_POLICY)
         if repo not in self._vlas:  # un VLA por color; se cargan al primer uso
             self._vlas[repo] = RealVLARunner(self.robot, repo, device=os.environ.get("SO101_VLA_DEVICE", "mps"))
         res = self._vlas[repo].run(instruction, seconds=seconds)

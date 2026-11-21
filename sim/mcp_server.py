@@ -5,10 +5,8 @@ Backend (variable SO101_BACKEND):
   real               -> brazo físico (real/real_arm.py). Todo movimiento exige ALLOW_REAL_MOTION=1.
 
 Escena (variable SO101_SCENE):
-  pick   (por defecto) -> cubo + caja. Herramienta `run_skill` (VLA de propósito general).
-  hanoi                -> torre de Hanoi. Claude orquesta: pide el estado, decide el movimiento y
-                          llama a `hanoi_pick_place`, que usa el VLA de ese color (uno por color).
-                          En real, cada movimiento se confirma con `hanoi_confirm` tras mirar las cámaras.
+  pick    (por defecto) -> cubo + caja. Herramienta `run_skill` (VLA de propósito general).
+  objects               -> objetos cotidianos con agarre físico (sim/objects_env.py).
 
 Unidades: sim en radianes; real en grados (articulaciones) y 0..100 (pinza), como LeRobot.
 
@@ -29,12 +27,11 @@ sys.path.insert(0, str(HERE))
 
 BACKEND = os.environ.get("SO101_BACKEND", "sim").lower()
 SCENE = os.environ.get("SO101_SCENE", "pick").lower()
-HANOI = SCENE == "hanoi"
 OBJECTS = SCENE == "objects"  # objetos cotidianos con agarre físico (sim/objects_env.py)
 REAL = BACKEND == "real"
 
-board = None  # tablero de Hanoi (SimBoard o RealBoard)
 vla = None    # VLA de la escena "pick" en sim
+
 
 class _Unavailable:
     """Sustituto del brazo real cuando no arranca (sin puerto, sin calibración, cámara ausente...).
@@ -55,36 +52,14 @@ if REAL:
 
     try:
         arm = RealArm()
-        if HANOI:
-            from hanoi_board import RealBoard  # noqa: E402
-
-            board = RealBoard(arm)
     except Exception as exc:  # noqa: BLE001
         print(f"[so101-real] el brazo real no arrancó: {exc}", file=sys.stderr, flush=True)
         arm = _Unavailable(str(exc))
-        board = _Unavailable(str(exc)) if HANOI else None
 else:
     from sim_arm import SimArm  # noqa: E402
-    from vla_policy import CAMS_HANOI, VLARunner  # noqa: E402
+    from vla_policy import VLARunner  # noqa: E402
 
-    if HANOI:
-        from hanoi_board import SimBoard  # noqa: E402
-        from hanoi_env import HanoiSim  # noqa: E402
-
-        arm = HanoiSim()
-        _vlas: dict[str, VLARunner] = {}
-
-        def _vla_for(color: str) -> VLARunner:
-            """VLA de ese color. Ruta: SO101_HANOI_VLA_<COLOR> (carpeta pretrained_model)."""
-            if color not in _vlas:
-                path = os.environ.get(f"SO101_HANOI_VLA_{color.upper()}")
-                if not path:
-                    raise RuntimeError(f"Falta SO101_HANOI_VLA_{color.upper()} con el checkpoint de {color}")
-                _vlas[color] = VLARunner(arm, cams=CAMS_HANOI, repo_id=path)
-            return _vlas[color]
-
-        board = SimBoard(arm, _vla_for)
-    elif OBJECTS:
+    if OBJECTS:
         from objects_env import ObjectsSim  # noqa: E402
 
         arm = ObjectsSim()
@@ -98,9 +73,7 @@ mcp = FastMCP(f"so101-{BACKEND}-{SCENE}")
 # ------------------------------------------------------------ comunes
 @mcp.tool()
 def get_scene() -> dict:
-    """Estado del brazo y, con la escena Hanoi, el tablero. Unidades en 'units' (real) o rad (sim)."""
-    if board is not None:
-        return {"state": arm.get_state(), "board": board.state()}
+    """Estado del brazo y resumen de la escena. Unidades en 'units' (real) o rad (sim)."""
     return arm.get_scene_summary()
 
 
@@ -132,59 +105,6 @@ def get_camera_image(camera: str = "top") -> Image:
     path = arm.render(camera)
     return Image(path=str(path))
 
-
-# ------------------------------------------------------------ Hanoi
-if HANOI:
-
-    @mcp.tool()
-    def hanoi_state() -> dict:
-        """Tablero: discos de abajo a arriba en cada pivote. Pivotes A (amarillo), B (morado), C (naranja).
-        Discos de menor a mayor: red, green, blue, cyan, brown. Un disco sólo va encima de uno más grande.
-        En real es el estado lógico; un movimiento sin confirmar aparece en 'pending'."""
-        return board.state()
-
-    @mcp.tool()
-    def hanoi_reset(n_disks: int = 3) -> dict:
-        """Reinicia la torre con n_disks (1..5) apilados en el pivote A, el más grande abajo.
-        En real sólo fija el estado lógico: hay que colocar los discos a mano según ese estado."""
-        return board.reset(n_disks)
-
-    @mcp.tool()
-    def hanoi_pick_place(disk: str, to_peg: str, seconds: float = 20.0) -> dict:
-        """Ejecuta un movimiento con el VLA de ese color: coger el disco y dejarlo en to_peg.
-        disk en {red, green, blue, cyan, brown}; to_peg en {A, B, C}.
-        Sim: devuelve ok al terminar. Real: devuelve imágenes y status 'needs_confirmation';
-        revisa las imágenes y llama a hanoi_confirm antes de otro movimiento."""
-        if REAL:
-            return board.pick_place(disk.lower(), to_peg.upper(), seconds=seconds)
-        return board.pick_place(disk.lower(), to_peg.upper())
-
-    @mcp.tool()
-    def hanoi_confirm(ok: bool) -> dict:
-        """Real: confirma el último movimiento tras comprobar las cámaras (ok=true), o lo rechaza
-        (ok=false; el estado no cambia; reintenta o corrige con hanoi_set_state)."""
-        return board.confirm(ok)
-
-    @mcp.tool()
-    def hanoi_set_state(pegs: dict) -> dict:
-        """Real: corrige el estado lógico, p. ej. {"A": ["red"], "B": ["green", "blue"], "C": []}.
-        Sólo acepta configuraciones legales."""
-        return board.set_state(pegs)
-
-    if not REAL:
-
-        @mcp.tool()
-        def move_tcp(x: float, y: float, z: float, gripper: float = 1.5) -> dict:
-            """Sim: lleva la punta de la pinza a (x, y, z) en metros, con la pinza hacia abajo.
-            gripper en radianes: 1.5 abierta, -0.1 cerrada. Pivotes A (0.19,-0.12), B (0.19,0), C (0.19,0.12)."""
-            import numpy as np
-
-            q5 = arm.ik(np.array([x, y, z]), q0=arm.data.qpos[:5].copy())
-            res = arm.move_joints([*q5.tolist(), gripper])
-            arm.grip_update(gripper)
-            err = float(np.linalg.norm(arm.tcp() - np.array([x, y, z])))
-            return {"tcp": [round(float(v), 4) for v in arm.tcp()], "error_m": round(err, 4),
-                    "held": arm.held, "reached": res["reached"]}
 
 # ------------------------------------------------------------ objetos (sim)
 if OBJECTS:
@@ -220,7 +140,7 @@ if OBJECTS:
 
 
 # ------------------------------------------------------------ escena pick
-if not HANOI and not OBJECTS:
+if not OBJECTS:
 
     @mcp.tool()
     def run_skill(instruction: str, seconds: float = 20.0) -> dict:

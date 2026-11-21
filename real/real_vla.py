@@ -57,8 +57,8 @@ class RealVLARunner:
             batch[key] = torch.from_numpy(img).permute(2, 0, 1)
         return batch
 
-    def run(self, instruction: str, seconds: float, done=None) -> VLAResult:
-        """Ejecuta `instruction` durante `seconds` como máximo. `done()` -> bool corta antes.
+    def run(self, instruction: str, seconds: float) -> VLAResult:
+        """Ejecuta `instruction` durante `seconds` como máximo.
 
         Nunca envía nada si el robot no está conectado. Ante cualquier error, deja de enviar
         comandos y devuelve stopped_by='error' (el brazo queda en la última posición enviada)."""
@@ -69,9 +69,6 @@ class RealVLARunner:
         try:
             with torch.inference_mode():
                 while time.time() - t0 < seconds:
-                    if done is not None and done():
-                        stopped = "done"
-                        break
                     obs = self.robot.get_observation()
                     batch = self.pre(self._observation(obs, instruction))
                     action = self.post(self.policy.select_action(batch)).squeeze(0).cpu().numpy()[:6]

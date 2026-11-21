@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source real/env.sh
-# Cámara de mesa opcional (SO101_TABLE_CAM >= 0). Hanoi la necesita como camera3.
+# Cámara de mesa opcional (SO101_TABLE_CAM >= 0).
 CAM_TABLE=""
 if [ "${SO101_TABLE_CAM:--1}" -ge 0 ]; then CAM_TABLE=", table: {type: opencv, index_or_path: ${SO101_TABLE_CAM}, width: 320, height: 240, fps: 30}"; fi
 EPISODES="${1:-30}"

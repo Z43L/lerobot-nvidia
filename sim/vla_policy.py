@@ -26,7 +26,7 @@ import mujoco
 import numpy as np
 import torch
 
-# Checkpoint por defecto; con SO101_VLA_PATH se puede usar un fine-tune local (p. ej. el de Hanoi).
+# Checkpoint por defecto; con SO101_VLA_PATH se puede usar un fine-tune local.
 REPO_ID = os.environ.get("SO101_VLA_PATH", "Harrysunshine/so101-smolvla-real-9task")
 CONTROL_HZ = 30
 CAMERA_SIZE = (480, 640)  # alto, ancho (igual que en el dataset del checkpoint)
@@ -35,8 +35,6 @@ GRIPPER_IDX = 5
 
 # Cámaras que espera el VLA: clave del checkpoint -> cámara de MuJoCo.
 CAMS_PICK = {"observation.images.top": "top", "observation.images.wrist": "wrist"}
-CAMS_HANOI = {"observation.images.camera1": "top", "observation.images.camera2": "wrist",
-              "observation.images.camera3": "table"}
 
 
 class VLARunner:
@@ -120,9 +118,9 @@ class VLARunner:
         return bool(abs(dx) < 0.05 and abs(dy) < 0.05 and cube[2] < 0.06)
 
     # ---------------------------------------------------------- ejecución
-    def run(self, instruction: str, max_steps: int = 600, success=None) -> dict:
-        """Ejecuta `instruction` en bucle. `success()` -> bool, si no se pasa usa 'cubo en la caja'."""
-        check = success or self._cube_in_bin
+    def run(self, instruction: str, max_steps: int = 600) -> dict:
+        """Ejecuta `instruction` en bucle hasta que el cubo está en la caja o se agotan los pasos."""
+        check = self._cube_in_bin
         self._load()
         self.policy.reset()
         model, data = self.arm.model, self.arm.data
@@ -139,11 +137,7 @@ class VLARunner:
                 a_norm = action.squeeze(0).detach().cpu().numpy()[:6]
                 goal = self.norm_to_rad(a_norm)
                 data.ctrl[:6] = goal
-                if hasattr(self.arm, "grip_update"):  # pinza simulada (enganche), ver hanoi_env.py
-                    self.arm.grip_update(float(goal[5]))
                 for _ in range(substeps):
-                    if hasattr(self.arm, "sync_held"):
-                        self.arm.sync_held()
                     mujoco.mj_step(model, data)
                 if hasattr(self.arm, "sync_view"):
                     self.arm.sync_view()

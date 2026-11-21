@@ -24,7 +24,6 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from hanoi_expert import rad_to_norm
 from objects_env import OBJECTS, PC_SIDE_POS, ObjectsSim
 
 ROOT = Path(__file__).resolve().parent
@@ -35,6 +34,19 @@ IMG_HW = (240, 320)  # alto x ancho; igual que la resolución de las cámaras de
 JOINTS = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 CAMS = ["top", "wrist", "table"]
 CAM_KEYS = [f"observation.images.camera{i}" for i in (1, 2, 3)]
+GRIP_IDX = 5
+
+
+def rad_to_norm(sim, q: np.ndarray) -> np.ndarray:
+    """Radianes de la sim -> unidades de LeRobot: grados en las articulaciones, 0..100 en la pinza.
+    Igual que VLARunner.rad_to_norm (sim/vla_policy.py)."""
+    lo, hi = sim.model.jnt_range[:6, 0], sim.model.jnt_range[:6, 1]
+    frac = (q - lo) / (hi - lo)
+    out = np.degrees(q).astype(np.float64)
+    out[GRIP_IDX] = np.clip(frac[GRIP_IDX], 0.0, 1.0) * 100.0
+    return out
+
+
 BIN_XY = PC_SIDE_POS  # zona de entrega fija
 BIN_RADIUS = 0.05     # éxito si el objeto acaba a menos de 5 cm del destino
 LABEL = {"bottle": "bottle", "box": "box", "cup": "cup"}

@@ -9,7 +9,7 @@ Proyecto: simulación MuJoCo y brazo real SO-101 controlados por SmolVLA y un se
 - `cpu` tarda unos 31 s por chunk de 50 acciones; `mps`, unos 1,4 s. No uses `cpu` salvo que MPS no esté disponible (el código lo avisa y cae a CPU).
 - `cuda` solo si el puesto del evento tiene una GPU NVIDIA; pásalo explícitamente, nunca como valor por defecto.
 - MLX no está instalado ni integrado: no lo propongas sin un plan de portado.
-- Scripts de entrenamiento: `real/train.sh <dataset> <pasos> mps` y `sim/hanoi_train.sh <color> <pasos> mps`. Mantén `PYTORCH_ENABLE_MPS_FALLBACK=1` (ya está en los scripts).
+- Scripts de entrenamiento: `real/train.sh <dataset> <pasos> mps`. Mantén `PYTORCH_ENABLE_MPS_FALLBACK=1` (ya está en los scripts).
 
 ## Entorno
 

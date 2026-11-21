@@ -40,12 +40,6 @@ real/train.sh <nombre> 500 mps     # primero una prueba corta para validar el fl
 real/train.sh <nombre> 20000 mps   # entrenamiento completo: decide los pasos antes, según el tiempo medido
 ```
 
-Hanoi (un VLA por color):
-
-```bash
-sim/hanoi_train.sh red 2000 mps
-```
-
 Antes de un entrenamiento largo, mide el tiempo por paso con la prueba corta y comunícalo al usuario. Los scripts ya ponen `PYTORCH_ENABLE_MPS_FALLBACK=1`.
 
 ## Reglas

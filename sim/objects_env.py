@@ -1,6 +1,6 @@
 """Escena de objetos cotidianos con agarre FÍSICO (sin enganche) y PC simulado.
 
-Diferencias con hanoi_env.py:
+Características:
   - Las mandíbulas colisionan de verdad: el objeto sólo se sostiene por fricción de contacto.
   - Objetos con dimensiones y masas aproximadas (lápiz, móvil, cascos).
   - PC simulado sobre la mesa y zona de entrega "pc_side" junto a él.

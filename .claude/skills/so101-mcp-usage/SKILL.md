@@ -1,6 +1,6 @@
 ---
 name: so101-mcp-usage
-description: Cómo usar los servidores MCP del SO-101 (so101-sim, so101-sim-hanoi, so101-sim-objects, so101-real, so101-real-hanoi) desde Claude, qué herramientas hay, qué variables necesitan y cómo leer sus errores. Úsala cuando el usuario quiera mover el brazo, ver la escena, lanzar el VLA, o cuando un servidor no conecte o devuelva "Brazo real no disponible".
+description: Cómo usar los servidores MCP del SO-101 (so101-sim, so101-sim-objects, so101-real) desde Claude, qué herramientas hay, qué variables necesitan y cómo leer sus errores. Úsala cuando el usuario quiera mover el brazo, ver la escena, lanzar el VLA, o cuando un servidor no conecte o devuelva "Brazo real no disponible".
 ---
 
 # Servidores MCP del SO-101
@@ -10,10 +10,8 @@ Los servidores están en `.mcp.json` y todos usan `sim/mcp_server.py` con `SO101
 | Servidor | Qué es | Notas |
 |---|---|---|
 | `so101-sim` | Sim, escena pick (cubo y caja) | Herramienta `run_skill` con el VLA de referencia |
-| `so101-sim-hanoi` | Sim, torre de Hanoi | `hanoi_*` y `hanoi_pick_place`; hacen falta checkpoints por color |
 | `so101-sim-objects` | Sim, objetos cotidianos y PC | **En desarrollo**: `pick` todavía no levanta objetos. No lo presentes como funcional |
 | `so101-real` | Brazo físico | Requiere puerto y calibración; todo movimiento exige `ALLOW_REAL_MOTION=1` |
-| `so101-real-hanoi` | Brazo físico, Hanoi | Igual que el real, más cámara de mesa (`SO101_TABLE_CAM`) |
 
 ## Herramientas comunes
 
