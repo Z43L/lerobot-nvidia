@@ -360,11 +360,12 @@ def stage_models(args):
         sane = bool(np.isfinite(vals).all() and 0 <= vals[5] <= 100 and np.abs(vals[:5]).max() < 200)
         record(5, f"{name}: predicción", "PASS" if sane else "FAIL", f"{dt:.2f} s/chunk, gripper {vals[5]:.1f}", "finita, pinza 0-100")
         try:
-            from chess_ik_exec import GRIP_OPEN, act_grip_problem, trained_gripper_range
+            from chess_ik_exec import GRIP_APPROACH, act_grip_problem, trained_gripper_range
             lo, hi = trained_gripper_range(path)
-            why = act_grip_problem(path)
+            op = max(GRIP_APPROACH.values())   # apertura de acercamiento a la pieza (la de tránsito, 40, no la ve el ACT)
+            why = act_grip_problem(path, grip_open=op)
             record(5, f"{name}: apertura de aproximación dentro de lo entrenado", "FAIL" if why else "PASS",
-                   why or f"CHESS_GRIP_OPEN={GRIP_OPEN:.0f} dentro de {lo:.1f}-{hi:.1f}", "GRIP_OPEN <= máx. entrenado + 2")
+                   why or f"apertura máx. por pieza {op:.0f} dentro de {lo:.1f}-{hi:.1f}", "apertura de acercamiento <= máx. entrenado + 2")
         except Exception as e:  # noqa: BLE001
             record(5, f"{name}: apertura de aproximación", "FAIL", f"{type(e).__name__}: {e}"[:100], "comprobable")
         if not (dataset / "meta/info.json").exists():

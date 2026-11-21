@@ -1,0 +1,4 @@
+[submodule "act_tray_a100_100k_ckpts"]
+	path = act_tray_a100_100k_ckpts
+	url = https://huggingface.co/PIPEFD/act_tray_a100_100k_ckpts
+	branch = main

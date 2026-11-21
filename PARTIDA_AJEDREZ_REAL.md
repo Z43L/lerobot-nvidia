@@ -47,3 +47,7 @@ Skills: `so101-ajedrez-partida-real` (flujo), `so101-ajedrez-camaras-yolo` (visi
 - d2→d4 y b2→b4 guionizados: el agarre cerró en vacío en todos los intentos (centro y ±3 mm). `grasp-probe b2 --step 0.006` agarró en (0,0) y (0,+6) mm → guardado b2 = (0, +3) mm en `hub/chess_grasp_offset.json`; repetido en `run`, falló otra vez. Hipótesis: cada cierre con éxito desplaza el peón contra el dedo fijo, y la sonda deja la pieza en otro sitio.
 - ACT 30k con `--grasp act`: solo 1 paso en la ventana de 8 s. Causas: (1) abría y cerraba las cámaras en cada paso → ahora quedan abiertas (~2,8 Hz); (2) `real/env.local.sh` tenía índices viejos (YOLO=1, muñeca=0) → corregido a YOLO 0, muñeca 2; (3) la 1a inferencia en mps tarda ~9 s (calentamiento pendiente de añadir); (4) `act_grip_problem` comparaba la apertura de tránsito (40) → ahora la de acercamiento (14).
 - Predicción del ACT encima de b2: sube el hombro (3,4 → -10/-12): no baja hacia la pieza.
+
+### 2026-11-21 (tarde, 6): verificación de los ACT
+- Solo existen los pesos de `act_tray_a100_100k_ckpts` (10k/20k/30k, LFS OK). Las rutas configuradas (`~/act_tray_ckpts`, `outputs/train/...`, `modeloACT`) no existían: `e2e_check --stage models` fallaba.
+- `hf-30k-cuda` ahora busca también en el clon local; `deploy_act_generic.py` y `pruebas_act` leen `chess_config`. El verificador compara la apertura de acercamiento por pieza (≤17), no la de tránsito. Resultado: 3 PASS, 0 FAIL.

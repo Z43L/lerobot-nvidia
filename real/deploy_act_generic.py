@@ -36,7 +36,10 @@ ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 from deploy_goal import load_policy, step_policy  # noqa: E402
 
-DEFAULT_CHECKPOINT = ROOT / "modeloACT" / "checkpoints" / "last" / "pretrained_model"
+sys.path.insert(0, str(ROOT / "hub"))
+import chess_config  # noqa: E402  (fuente única de rutas: el ACT genérico que exista, p. ej. el de 30k)
+
+DEFAULT_CHECKPOINT = chess_config.ACT_GENERIC_CKPT
 FPS = 30
 IMG_H, IMG_W = 360, 640
 STATE_KEY = "observation.state"

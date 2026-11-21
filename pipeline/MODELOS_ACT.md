@@ -14,6 +14,26 @@ de la casilla y una caja de seguridad alrededor.
 
 Elegir otro: `CHESS_ACT_CHECKPOINT=<ruta>`. Sin esa variable se usa el primero que exista, en el orden de la tabla.
 
+## Verificación de pesos (2026-11-21, Mac de desarrollo)
+
+| Ruta | Estado |
+|---|---|
+| `act_tray_a100_100k_ckpts/checkpoints/{010000,020000,030000}/pretrained_model` | **Pesos reales** (207 MB cada uno, `git lfs fsck` OK). Clon de `huggingface.co/PIPEFD/act_tray_a100_100k_ckpts`: en HF solo hay 10k, 20k y 30k (el entrenamiento estaba configurado a 100k). Los tres cargan y predicen en mps. |
+| `~/act_tray_ckpts/...` | No existe en este Mac (es la ruta del host). `hf-30k-cuda` cae al clon de arriba. |
+| `outputs/train/act_tray_clean_25000/...` (`local-25k-mps`) | No existe en este Mac. |
+| `modeloACT/` | No existe (zip ignorado en git). `real/deploy_act_generic.py` y `pruebas_act/act_model.py` ya no lo usan: leen `chess_config.ACT_GENERIC_CKPT`. |
+| `checkpoints/act_tray_test200` (ACT con objetivo) | No existe. No hay ningún ACT con objetivo. |
+
+**Submódulo (21-nov):** `act_tray_a100_100k_ckpts` es un submódulo de git que apunta a `https://huggingface.co/PIPEFD/act_tray_a100_100k_ckpts` (commit `a1ca91e`, rama `main`). Se eliminó `act_tray_30k_ckpts`, que era una referencia duplicada al mismo repo y commit. Requiere `git-lfs`.
+
+```bash
+# Solo los pesos del 30k (~200 MB), sin estados del optimizador (394 MB por checkpoint) ni 10k/20k:
+GIT_LFS_SKIP_SMUDGE=1 git submodule update --init act_tray_a100_100k_ckpts
+git -C act_tray_a100_100k_ckpts lfs pull --include "checkpoints/030000/pretrained_model/*"
+# Todo (~1,8 GB): git submodule update --init  (con git-lfs instalado)
+```
+Comprobar: `./.venv312/bin/python pipeline/e2e_check.py --stage models` (3 PASS el 21-nov).
+
 ## CUDA en un Mac
 
 Un checkpoint entrenado en CUDA guarda `"device": "cuda"` en `config.json` **y** en `policy_preprocessor.json`

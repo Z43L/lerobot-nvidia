@@ -55,7 +55,11 @@ YOLO_WEIGHTS = Path(os.environ.get("CHESS_YOLO_WEIGHTS",
 # ACT genérico (SIN objetivo: 6 articulaciones + cámaras front y gripper a 640x360). Modelos conocidos, en orden de
 # preferencia. Ninguno está en git (los pesos pesan ~200 MB): se copian al host con rsync (ver pipeline/MODELOS_ACT.md).
 ACT_MODELS: dict[str, Path] = {
-    "hf-30k-cuda": Path(os.environ.get("ACT_HF_30K", Path.home() / "act_tray_ckpts/checkpoints/030000/pretrained_model")),
+    # Mismo modelo (HF PIPEFD/act_tray_a100_100k_ckpts, paso 30000) en el host (~/act_tray_ckpts) o clonado dentro del
+    # proyecto (act_tray_a100_100k_ckpts/, el del Mac de desarrollo). En HF solo hay 10k, 20k y 30k.
+    "hf-30k-cuda": Path(os.environ["ACT_HF_30K"]) if os.environ.get("ACT_HF_30K") else _first_existing(
+        Path.home() / "act_tray_ckpts/checkpoints/030000/pretrained_model",
+        ROOT / "act_tray_a100_100k_ckpts/checkpoints/030000/pretrained_model"),
     "local-25k-mps": Path(os.environ.get("ACT_LOCAL_25K", ROOT / "outputs/train/act_tray_clean_25000/checkpoints/025000/pretrained_model")),
 }
 ACT_GENERIC_CKPT = (Path(os.environ["CHESS_ACT_CHECKPOINT"]) if os.environ.get("CHESS_ACT_CHECKPOINT")
