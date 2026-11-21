@@ -1,0 +1,172 @@
+{
+  "dx_m": 0.0,
+  "dy_m": 0.0027,
+  "dz_m": -0.002,
+  "casilla": "e2",
+  "fecha": "2026-11-21 16:52",
+  "aciertos": "3/18",
+  "pruebas": [
+    {
+      "offset_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pinza": 5.3,
+      "agarra": true
+    },
+    {
+      "offset_m": [
+        -0.008,
+        0.0,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.0,
+        -0.008,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.0,
+        0.008,
+        0.0
+      ],
+      "pinza": 5.1,
+      "agarra": true
+    },
+    {
+      "offset_m": [
+        0.008,
+        0.0,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        -0.008,
+        -0.008,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        -0.008,
+        0.008,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.008,
+        -0.008,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.008,
+        0.008,
+        0.0
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.0,
+        0.0,
+        -0.006
+      ],
+      "pinza": 6.3,
+      "agarra": true
+    },
+    {
+      "offset_m": [
+        -0.008,
+        0.0,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.0,
+        -0.008,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.0,
+        0.008,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.008,
+        0.0,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        -0.008,
+        -0.008,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        -0.008,
+        0.008,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.008,
+        -0.008,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    },
+    {
+      "offset_m": [
+        0.008,
+        0.008,
+        -0.006
+      ],
+      "pinza": 1.6,
+      "agarra": false
+    }
+  ]
+}

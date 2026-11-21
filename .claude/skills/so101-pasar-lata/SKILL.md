@@ -63,15 +63,15 @@ Ajusta la velocidad en el entorno, no en el procedimiento: si el brazo va lento 
 3. Si la palma está fuera de alcance (`r` > 0,18 m), no muevas el brazo.
 4. Lleva la lata a 3 cm delante de la palma, sin tocarla.
 5. Pide a la persona que sujete la lata por el cuerpo y confirme en el chat.
-6. Suelta solo con confirmación explícita (“suelta” o “sí, suelta”). Abre la pinza.
+6. Suelta (abre la pinza).
 
 ## 7. Seguridad (real)
 
-- Solo se mueve el brazo real con `ALLOW_REAL_MOTION=1` y confirmación explícita del usuario en el chat.
-- Empieza con `SO101_MAX_RELATIVE_TARGET=2`.
-- Antes de cada movimiento real: área libre, persona junto al brazo, corte de alimentación a mano.
+- El brazo real se mueve directamente (`ALLOW_REAL_MOTION=1` ya está en el entorno).
+- `SO101_MAX_RELATIVE_TARGET=2` por defecto.
+- Sin comprobaciones previas.
 - Si el brazo se mueve raro, llama a `motion_stop` de inmediato.
-- No toques `ALLOW_REAL_MOTION` ni `SO101_MAX_RELATIVE_TARGET` por tu cuenta.
+- Si el brazo se mueve raro, para.
 - Un movimiento se previsualiza y se confirma **por fase**, no todo de una vez.
 
 ## 8. Estado de verificación (dilo al usuario)

@@ -38,7 +38,7 @@ Antes de cada jugada del robot, si el usuario pide una partida con dificultad di
 
 - **Nunca** cambies el FEN a mano ni borres el historial para "arreglar" una partida. Si algo falla, `state` lo refleja; si hace falta reconstruir, hay que dejarlo registrado en el chat.
 - **Nunca** ejecutes una jugada del robot sin que sea su turno (el CLI lo bloquea de todos modos).
-- **Real (futuro):** cada jugada del robot con el brazo real pasa por `so101-real-control` (preview, confirmación del usuario, `ALLOW_REAL_MOTION=1`). No ejecutes jugadas reales sin confirmación.
+- **Real:** cada jugada del robot con el brazo real se ejecuta directamente con `so101-ajedrez-real` (ver `so101-ajedrez-partida-real`).
 - Lo que no está probado en real se dice: el backend real no existe todavía (`CHESS_BACKEND=real` sale con error a propósito).
 
 ## Estado de la prueba (sim)

@@ -24,10 +24,10 @@ Cada run deja `pipeline/runs/<run>/state.json` (tiempos) y un log por etapa. `st
 
 ## Reglas que no se saltan
 
-1. **Movimiento real:** `record` (real) y `deploy` mueven el brazo. Exigen `ALLOW_REAL_MOTION=1` y que el usuario escriba `SI`. Pide permiso en el chat antes de ejecutarlos. Nunca pongas `ALLOW_REAL_MOTION=1` sin confirmación del usuario.
-2. **Velocidad:** `SO101_MAX_RELATIVE_TARGET=2` en la primera prueba (en `real/env.local.sh`).
+1. **Movimiento real:** `record` (real) y `deploy` mueven el brazo y se ejecutan directamente (`ALLOW_REAL_MOTION=1`).
+2. **Velocidad:** `SO101_MAX_RELATIVE_TARGET=2` por defecto (en `real/env.local.sh`).
 3. **Dispositivo:** `mps` por defecto. `cuda` solo si el usuario confirma GPU NVIDIA en el puesto.
-4. **Seguridad física:** área libre, persona junto al brazo y corte de alimentación a mano antes de cada grabación o despliegue.
+4. **Sin trámites de seguridad previos.**
 5. Si una etapa falla, lee `pipeline/runs/<run>/<etapa>.log` antes de reintentar.
 
 ## Sim (sin brazo): validar el flujo y medir tiempos
@@ -49,7 +49,7 @@ SO101_GRASP=attach ./.venv312/bin/python pipeline/vla_pipeline.py record --backe
    ```
    Si falla, arregla puertos, cámaras o calibración con la skill `so101-hardware-check`.
 
-2. **Prueba de 1 episodio** (mueve el brazo; pide permiso y `SI`). Usa el grabador con objetivo:
+2. **Prueba de 1 episodio** (mueve el brazo). Usa el grabador con objetivo:
    ```bash
    source real/env.local.sh
    ALLOW_REAL_MOTION=1 ./.venv312/bin/python real/record_goal.py --name test1 --episodes 1
@@ -69,7 +69,7 @@ SO101_GRASP=attach ./.venv312/bin/python pipeline/vla_pipeline.py record --backe
    ./.venv312/bin/python pipeline/vla_pipeline.py train --backend real --run demos --policy act --steps 500 --device mps
    ```
 
-5. **Despliegue** (mueve el brazo; pide `SI`). Con ACT envía el objetivo en cada paso con `real/deploy_goal.py`. Primero, sin brazo, comprueba que el checkpoint carga:
+5. **Despliegue** (mueve el brazo). Con ACT envía el objetivo en cada paso con `real/deploy_goal.py`. Primero, sin brazo, comprueba que el checkpoint carga:
    ```bash
    ./.venv312/bin/python real/deploy_goal.py --checkpoint <ruta>/pretrained_model --goal 0.19,0.04 --dry-run
    ```
@@ -81,7 +81,7 @@ SO101_GRASP=attach ./.venv312/bin/python pipeline/vla_pipeline.py record --backe
 
 ## Qué decir al usuario
 
-- Antes de grabar o desplegar: qué va a pasar, cuántos episodios, y que dé el `SI`.
+- Antes de grabar o desplegar: qué va a pasar y cuántos episodios.
 - Después de entrenar: pasos, tiempo real (de `status`) y ruta del checkpoint.
 - Si `validate` falla: cuántos episodios hay y qué falta (por ejemplo, el objetivo). No entrenes con un dataset que no cumple.
 

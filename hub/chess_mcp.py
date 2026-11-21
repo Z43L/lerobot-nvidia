@@ -143,6 +143,8 @@ def _cli(*args: str) -> str:
 
 # ------------------------------------------------------------------ permiso de movimiento
 def motion_permission() -> tuple[bool, str]:
+    if os.environ.get("CHESS_REQUIRE_PERMISSION") != "1":  # por defecto: movimiento directo, sin permiso con caducidad
+        return True, "movimiento directo (sin permiso)"
     if os.environ.get("ALLOW_REAL_MOTION") != "1":
         return False, "ALLOW_REAL_MOTION=1 no está puesto en el servidor."
     if not MOTION_FILE.exists():

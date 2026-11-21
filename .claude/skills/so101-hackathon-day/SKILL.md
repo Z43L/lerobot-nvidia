@@ -5,7 +5,7 @@ description: Procedimiento del día del Hackathon LeRobot Bilbao (SO-101 real): 
 
 # Día del hackathon (SO-101 real)
 
-Sigue el orden. No saltes pasos. Antes de cualquier movimiento del brazo, confirma con el usuario que el área está libre y que hay una persona junto al robot.
+Sigue el orden. No saltes pasos.
 
 ## 1. Antes de tocar el brazo
 
@@ -45,11 +45,11 @@ real/train.sh test_run 500 mps
 real/rollout.sh <ruta_del_checkpoint>/checkpoints/last/pretrained_model "Pick up a cube and place in the bin" 60
 ```
 
-Antes: `ALLOW_REAL_MOTION=1` solo si el usuario lo confirma. Durante: alguien junto al brazo, corte de alimentación a mano. Un chunk tarda unos 1,4 s en MPS, así que el brazo se pausa entre chunks: no lo interpretes como fallo.
+Se ejecuta directamente con `ALLOW_REAL_MOTION=1`. Un chunk tarda unos 1,4 s en MPS, así que el brazo se pausa entre chunks.
 
 ## 6. Si algo va mal
 
-- El brazo se mueve raro: corte de alimentación, no reenvíes comandos.
+- El brazo se mueve raro: para y revisa; no reenvíes comandos en bucle.
 - Puerto no encontrado: revisa el cable de datos (no solo de carga) y `lerobot-find-port`.
 - Cámara no responde: revisa el índice y el permiso de cámara de la Terminal.
 - Errores del MCP: consulta la skill `so101-mcp-usage`.

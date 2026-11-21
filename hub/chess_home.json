@@ -1,12 +1,12 @@
 {
   "pose_origen_grados": {
-    "shoulder_pan": -0.6,
-    "shoulder_lift": -97.5,
-    "elbow_flex": 97.0,
-    "wrist_flex": -44.6,
+    "shoulder_pan": -7.9,
+    "shoulder_lift": -17.8,
+    "elbow_flex": 13.5,
+    "wrist_flex": 100.0,
     "wrist_roll": 165.1,
-    "gripper": 15.1
+    "gripper": 2.7
   },
-  "fecha": "2026-11-21 15:34",
-  "nota": "colocada a mano por el usuario"
+  "fecha": "2026-11-21 16:32",
+  "nota": "retorno desplegado, colocado a mano por el usuario (21-nov); el reposo plegado esta en chess_home.json.bak_reposo_plegado"
 }

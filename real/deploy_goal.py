@@ -57,7 +57,9 @@ def load_policy(checkpoint: Path, device: str):
     policy = get_policy_class(cfg.type).from_pretrained(str(checkpoint), config=cfg)
     policy.to(device)
     policy.eval()
-    pre, post = make_pre_post_processors(policy_cfg=policy.config, pretrained_path=str(checkpoint))
+    # El preprocesador guarda el dispositivo del entrenamiento (p. ej. 'cuda' en la A100): se fuerza el de este equipo.
+    pre, post = make_pre_post_processors(policy_cfg=policy.config, pretrained_path=str(checkpoint),
+                                         preprocessor_overrides={"device_processor": {"device": device}})
     return policy, pre, post
 
 

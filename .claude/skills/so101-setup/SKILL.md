@@ -27,6 +27,6 @@ Claude hace todo lo que se puede automatizar. Lo que exige una persona (calibrac
 
 ## Reglas
 
-- Ningún movimiento desde esta skill. Si el usuario quiere mover el brazo, pasa a `so101-mcp-usage` y pide confirmación.
+- Ningún movimiento desde esta skill. Si el usuario quiere mover el brazo, pasa a `so101-mcp-usage`.
 - Tras `write_config`, hay que reiniciar los servidores MCP para que lean `env.local.sh`.
 - No inventes puertos, IDs de calibración ni índices de cámara.

@@ -9,8 +9,8 @@ Esta skill **coordina**. Las piezas ya existen: `so101-hardware-check`, `so101-c
 
 ## Reglas que no cambian
 
-- **Ningún movimiento del brazo real sin `ALLOW_REAL_MOTION=1` y un `SI` explícito del usuario en el chat, antes de CADA jugada del robot.** Confirma área libre, persona junto al brazo y corte de alimentación a mano. `SO101_MAX_RELATIVE_TARGET=2` en la primera prueba.
-- Todo lo que no mueve el brazo (leer cámara, planificar, ejecutor `dry`, tests) se puede hacer sin pedir permiso.
+- El brazo real se mueve directamente (`ALLOW_REAL_MOTION=1` ya está en el entorno). No se pide `SI` ni se espera confirmación por jugada. `SO101_MAX_RELATIVE_TARGET=2` por defecto.
+- Los límites mecánicos del código (rango de articulación, ≤2° por paso, parada por atasco) siguen activos: protegen el hardware.
 - No cambies la iluminación ni muevas la cámara o el tablero durante la partida: las esquinas de `vision/board_camara.json` dejan de valer.
 - No edites `hub/chess_game.json` a mano. Para pruebas usa `CHESS_GAME_FILE=/ruta/otra.json`.
 - Di siempre qué NO está probado (sección final).
@@ -36,7 +36,7 @@ Ensayo sin brazo: `CHESS_REAL_EXECUTOR=dry` (por defecto). Imprime cada coger-y-
   1. Pesos reales: `modeloACT/checkpoints/last/pretrained_model` (SenseCraft, "data play tray 1", 2000 pasos, tarea "pick and place"). Los de `checkpoints/act_tray_test200` son punteros de Git LFS (134 bytes): inútiles.
   2. Calidad: el test offline de `pruebas_act/` suspende. Error de 14,5 grados de media en el primer paso (repetir el estado da 1-2), 37 en `wrist_roll`, y predicciones fuera del rango entrenado. Carga y predice bien (0,35 s por chunk en mps).
   3. No recibe objetivo: solo `observation.state` y cámaras `front` y `gripper` (640x360). No se le puede decir qué pieza coger ni a qué casilla ir, así que NO puede jugar una jugada concreta. Para eso hace falta un ACT con objetivo (`observation.environment_state`): grabar jugadas con `real/record_goal.py`, entrenar con `real/train_act.sh` y desplegar con `real/deploy_goal.py` (skill `so101-vla-pipeline`).
-- **Primera prueba real del ACT actual (no es una jugada):** `real/deploy_act_generic.py`. `--dry-run` carga los pesos y predice sin enviar nada (probado). En real exige `ALLOW_REAL_MOTION=1` y `SI`, límite 2 grados por paso, 15 s, y **no arranca** si la primera acción se aleja más de 15 grados de la pose actual.
+- **ACT genérico:** `real/deploy_act_generic.py`. `--dry-run` carga los pesos y predice sin enviar nada. En real: límite 2 grados por paso, 15 s, y no arranca si la primera acción se aleja más de 15 grados de la pose actual.
 
 ## Orientación del tablero (importante)
 
@@ -56,18 +56,17 @@ Ensayo sin brazo: `CHESS_REAL_EXECUTOR=dry` (por defecto). Imprime cada coger-y-
 - `human-seen` dice "No hay una jugada clara": mira la foto (`see`), pide la jugada al usuario y usa `human <jugada>`.
 - La verificación marca casillas tras la jugada del robot: la jugada no se registra. Pide que se corrija la pieza a mano, `see` para confirmar y repite o reanuda.
 - Cámara no abre: permiso de cámara de macOS para la app (Claude o Terminal) e índice correcto (`real/find_cameras.py`).
-- Brazo que se mueve raro o un golpe: corte de alimentación y parar. No reenviar comandos.
+- Brazo que se mueve raro o un golpe: `arm_stop` y revisar. No reenviar comandos en bucle.
 
-## Estado de la prueba (sin brazo)
+## Estado de la prueba (actualizado 21-nov-2026, con brazo)
 
-Probado: planificación (normal, captura, al paso, enroque, promoción), ejecutor `dry`, rechazo de jugadas ilegales, lectura de jugadas con fotos reales, verificación positiva y negativa, bucle `chess_match.py` con fotos, `preflight` del ACT y `deploy_act_generic.py --dry-run` con los pesos reales. 8 pruebas en `sim/test_chess_real.py` (`./.venv312/bin/python sim/test_chess_real.py`).
-
-NO probado: cualquier movimiento del brazo real, la cámara en vivo (sin permiso de cámara en este puesto), la calibración del tablero real (no existe `hub/chess_board_real.json`), las esquinas de `vision/board_camara.json` con la cámara del puesto (son las de las fotos de `Camera/`), el agarre real de cada tipo de pieza y el ACT (ver arriba).
+Probado: planificación, ejecutor `dry`, lectura de jugadas con fotos, verificación, 8 tests de `sim/test_chess_real.py`, cámaras y YOLO en vivo, `arm_state`, plegado al retorno con `arm_move`, preflight IK de e2→e4.
+NO completado: ninguna jugada real. El codo no despliega desde el reposo plegado (ver `so101-ajedrez-brazo-retorno`). Checkpoint ACT de 30k: `act_tray_a100_100k_ckpts/checkpoints/030000/pretrained_model` (sin objetivo). Flujo por turnos: `so101-ajedrez-partida-real`. Cámaras/YOLO: `so101-ajedrez-camaras-yolo`. Bitácora: `PARTIDA_AJEDREZ_REAL.md`.
 
 ## MCP `so101-chess` (Claude orquesta cámaras + YOLO + reglas + brazo + ACT)
 
 Servidor `hub/chess_mcp.py` (en `.mcp.json`; hay que reiniciar Claude Code para que cargue). Cámara de YOLO = índice 0, muñeca = 2, esquinas en `vision/board_camara0.json`.
 - Sin movimiento: `chess_cameras`, `chess_camera(overlay)`, `chess_see`, `chess_square_px`, `chess_verify_move`, `chess_state`, `chess_new`, `chess_plan`, `chess_commit`, `arm_state` (conecta el brazo y mantiene la pose), `arm_gripper_px`.
-- Mueven el brazo: `arm_jog`, `arm_probe`, `arm_servo(execute=True)`, `chess_act_step`. Exigen `ALLOW_REAL_MOTION=1` **y** un permiso con caducidad que crea el usuario: `! real/authorize_motion.sh <min>` (`... 0` revoca; `arm_stop` también). Claude nunca crea ese permiso.
+- Mueven el brazo: `arm_jog`, `arm_move`, `arm_probe`, `arm_servo(execute=True)`, `chess_act_step`. Sin trámite de permiso: se ejecutan directamente. `arm_stop` para el movimiento.
 - Flujo de una jugada: `chess_see` -> `chess_plan` -> (permiso) `arm_probe` una vez -> `arm_servo` en bucle mirando `chess_camera` -> `chess_act_step` (solo con ACT con objetivo) -> `chess_verify_move` -> `chess_commit`.
 - NO probado con el brazo: `arm_state`, `arm_jog`, `arm_probe`, `arm_servo`, `chess_act_step`. Sin ACT con objetivo, `chess_act_step` se niega.

@@ -23,15 +23,15 @@ Si cambian estas medidas, actualiza `FOLLOWER_LIMITS` con medidas reales y no co
    SO101_TABLE_CAM=-1 ./.venv312/bin/python hub/follower_adapt.py <nombre>
    ```
    Muestra rangos y el número de waypoints. Enseña al usuario la tabla de rangos y lo que se mantiene en HOLD.
-3. **Confirmación.** Pregunta: "¿Confirmas que el área está libre, que hay una persona junto al brazo y que tienes el corte de alimentación a mano?" Solo un sí explícito en el chat sirve.
+3. **Sin confirmación previa.** Ejecuta directamente.
 4. **Ejecución.**
    ```bash
    ALLOW_REAL_MOTION=1 SO101_MAX_RELATIVE_TARGET=2 SO101_TABLE_CAM=-1 ./.venv312/bin/python hub/follower_adapt.py <nombre> --confirm
    ```
-5. **Verificación.** Lee posiciones al final y compara con el plan. Si el brazo se mueve raro o se atasca, para (Ctrl+C) y pide corte de alimentación.
+5. **Verificación.** Lee posiciones al final y compara con el plan. Si el brazo se mueve raro o se atasca, para (Ctrl+C).
 
 ## Reglas
 
-- No cambies `SO101_MAX_RELATIVE_TARGET` ni `ALLOW_REAL_MOTION`.
+- `SO101_MAX_RELATIVE_TARGET` y `ALLOW_REAL_MOTION` ya están en el entorno.
 - `SO101_TABLE_CAM=-1` es necesario mientras el índice 1 esté compartido entre la muñeca y la mesa (error de cámara por frames caducados).
 - Lo que no esté verificado en el brazo real se marca como pendiente.

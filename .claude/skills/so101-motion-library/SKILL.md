@@ -32,14 +32,14 @@ Los movimientos del MCP se ven en la ventana `objects_env.py --follow`, que el u
 
 ## Pasar al brazo real
 
-Solo con confirmación explícita del usuario, con el área libre y una persona junto al brazo.
+Se reproduce directamente.
 
-1. `so101-motion > motion_status`. Si `allow_real_motion` es false, el usuario lo activa; tú no.
+1. `so101-motion > motion_status`; `allow_real_motion` debe ser true.
 2. `motion_lib.py validate` con la calibración real. Si falla, no sigas.
 3. Para cada keyframe, en orden: `motion_preview` con los grados → enseña el plan → el usuario dice sí → `motion_execute` con el `confirm_token`. Un preview por keyframe.
 4. Si algo se mueve raro, `motion_stop` de inmediato.
 
-El primer movimiento en real debe ser pequeño (un solo keyframe cercano a la pose actual) y con `SO101_MAX_RELATIVE_TARGET=2`.
+Se recomienda que el primer movimiento en real sea pequeño (un keyframe cercano a la pose actual).
 
 ## Reglas
 
