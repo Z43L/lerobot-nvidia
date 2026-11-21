@@ -364,12 +364,12 @@ def stage_models(args):
         try:
             import chess_ik_exec as ikx
             lo, hi = ikx.trained_gripper_range(path)
-            approach = getattr(ikx, "GRIP_APPROACH", None)  # apertura por pieza, si el ejecutor la tiene
+            approach = getattr(ikx, "GRIP_APPROACH", None)  # apertura de acercamiento por pieza (la de tránsito, 40, no la ve el ACT)
             grip = max(approach.values()) if approach else ikx.GRIP_OPEN
-            why = ikx.act_grip_problem(path, grip)
+            why = ikx.act_grip_problem(path, grip_open=grip)
             src = "máx. de GRIP_APPROACH por pieza" if approach else "GRIP_OPEN"
             record(5, f"{name}: apertura de aproximación dentro de lo entrenado", "FAIL" if why else "PASS",
-                   why or f"{src}={grip:.0f} dentro de {lo:.1f}-{hi:.1f}", "apertura <= máx. entrenado + 2")
+                   why or f"{src}={grip:.0f} dentro de {lo:.1f}-{hi:.1f}", "apertura de acercamiento <= máx. entrenado + 2")
         except Exception as e:  # noqa: BLE001
             record(5, f"{name}: apertura de aproximación", "FAIL", f"{type(e).__name__}: {e}"[:100], "comprobable")
         if not (dataset / "meta/info.json").exists():

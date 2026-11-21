@@ -62,8 +62,11 @@ def _model(env: str, *candidates: Path) -> Path:
 
 
 ACT_MODELS: dict[str, Path] = {
+    # El mismo modelo de 30k (HF PIPEFD/act_tray_a100_100k_ckpts, paso 30000) puede estar en tres sitios, en este orden:
+    # en el repo con Git LFS, descargado en el host (~/act_tray_ckpts) o en el submódulo de HF (act_tray_a100_100k_ckpts/).
     "hf-30k-cuda": _model("ACT_HF_30K", ROOT / "models/act/hf-30k-cuda",
-                          Path.home() / "act_tray_ckpts/checkpoints/030000/pretrained_model"),
+                          Path.home() / "act_tray_ckpts/checkpoints/030000/pretrained_model",
+                          ROOT / "act_tray_a100_100k_ckpts/checkpoints/030000/pretrained_model"),
     "local-25k-mps": _model("ACT_LOCAL_25K", ROOT / "models/act/local-25k-mps",
                             ROOT / "outputs/train/act_tray_clean_25000/checkpoints/025000/pretrained_model"),
 }

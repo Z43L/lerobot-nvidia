@@ -13,7 +13,12 @@ import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parent.parent
-CKPT = Path(os.environ.get("ACT_CKPT") or ROOT / "modeloACT" / "checkpoints" / "last" / "pretrained_model")
+import sys  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "hub"))
+import chess_config  # noqa: E402  (fuente única de rutas)
+
+CKPT = Path(os.environ.get("ACT_CKPT") or chess_config.ACT_GENERIC_CKPT)
 # Dataset local de SenseCraft (opcional, solo para comparar con el entrenamiento). Sin ruta por defecto: ACT_DATASET_ROOT.
 DATASET_ROOT = Path(os.environ["ACT_DATASET_ROOT"]) if os.environ.get("ACT_DATASET_ROOT") else None
 DATASET_REPO = "local/data play tray 1"
