@@ -1,0 +1,20 @@
+{
+ "fen": "r3k3/B1p2p2/8/3N4/8/7p/P1P1Q3/Rq2K3",
+ "pieces": {
+  "a1": "wR",
+  "a2": "wP",
+  "a7": "wB",
+  "a8": "bR",
+  "b1": "bQ",
+  "c2": "wP",
+  "c7": "bP",
+  "d5": "wN",
+  "e1": "wK",
+  "e2": "wQ",
+  "e8": "bK",
+  "f7": "bP",
+  "h3": "bP"
+ },
+ "count": 13,
+ "orientation": "blancas a la derecha de la foto, a1 abajo-derecha"
+}

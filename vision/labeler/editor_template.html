@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor de etiquetas: tablero</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #111; color: #eee; }
+  header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px; background: #1f1f1f; position: sticky; top: 0; z-index: 2; }
+  button, select { font: inherit; padding: 4px 8px; }
+  #info { font-size: 13px; opacity: .85; padding: 6px 8px; }
+  #wrap { padding: 0 8px 16px; }
+  canvas { display: block; width: 100%; max-width: 1280px; height: auto; touch-action: none; }
+  .hint { opacity: .6; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <button id="prev" title="Anterior (P)">◀</button>
+  <span id="pos"></span>
+  <button id="next" title="Siguiente (N)">▶</button>
+  <label>Clase <select id="cls"></select></label>
+  <button id="draw" title="Dibujar caja (D)">Dibujar caja (D)</button>
+  <label><input type="checkbox" id="grid" checked> Rejilla (G)</label>
+  <button id="del" title="Borrar caja seleccionada (Supr)">Borrar (Supr)</button>
+  <button id="reset" title="Vuelve a las etiquetas automáticas de esta imagen">Restaurar esta</button>
+  <button id="export">Exportar corrección</button>
+</header>
+<div id="info"></div>
+<div id="wrap"><canvas id="c" width="1280" height="720"></canvas></div>
+<p class="hint" style="padding:0 8px">
+  Arrastra dentro de una caja para moverla; arrastra una esquina para ajustarla; en modo Dibujar, arrastra sobre la foto para crear una caja con la clase elegida.
+  Clic en una caja para seleccionarla y cambiar su clase en el desplegable. Los cambios se guardan en este navegador; el JSON exportado es lo que se aplica al dataset.
+</p>
+
+<script>
+const DATA = __DATA__;
+const W = 1280, H = 720;
+const STORE_KEY = "labeler-tablero-v1";
+// Esquinas del tablero en la foto (vision/tablero/grid.py): TL, TR, BR, BL.
+const CORNERS = [[607,186],[997,172],[1098,495],[608,492]];
+const HANDLE = 9;
+
+const names = DATA.names;
+const clsSelect = document.getElementById("cls");
+for (const id of Object.keys(names)) {
+  const o = document.createElement("option");
+  o.value = id; o.textContent = `${id} · ${names[id]}`;
+  clsSelect.appendChild(o);
+}
+
+function deepCopy(x) { return JSON.parse(JSON.stringify(x)); }
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (saved && saved.length === DATA.images.length) return saved;
+  } catch (e) { /* almacenamiento no disponible: se usan los datos originales */ }
+  return DATA.images.map(im => ({ file: im.file, split: im.split, src: im.src, boxes: deepCopy(im.boxes), edited: false }));
+}
+let state = loadState();
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ }
+}
+
+let idx = 0, drawMode = false, showGrid = true, selected = -1;
+let drag = null; // {type:"move"|"resize"|"create", ...}
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const cache = {};
+
+function getImage(i) {
+  const im = state[i];
+  if (!cache[im.src]) {
+    const img = new Image();
+    img.onload = () => draw();
+    img.src = im.src;
+    cache[im.src] = img;
+  }
+  return cache[im.src];
+}
+
+// Pixeles <-> normalizado
+const toPx = b => ({ x1: (b.cx - b.w / 2) * W, y1: (b.cy - b.h / 2) * H, x2: (b.cx + b.w / 2) * W, y2: (b.cy + b.h / 2) * H });
+function fromPx(r) {
+  const x1 = Math.max(0, Math.min(r.x1, r.x2)), x2 = Math.min(W, Math.max(r.x1, r.x2));
+  const y1 = Math.max(0, Math.min(r.y1, r.y2)), y2 = Math.min(H, Math.max(r.y1, r.y2));
+  return { cx: (x1 + x2) / 2 / W, cy: (y1 + y2) / 2 / H, w: (x2 - x1) / W, h: (y2 - y1) / H };
+}
+
+function bilinear(u, v) { // u,v en [0,1] sobre el tablero
+  const [TL, TR, BR, BL] = CORNERS;
+  const top = [TL[0] + (TR[0] - TL[0]) * u, TL[1] + (TR[1] - TL[1]) * u];
+  const bot = [BL[0] + (BR[0] - BL[0]) * u, BL[1] + (BR[1] - BL[1]) * u];
+  return [top[0] + (bot[0] - top[0]) * v, top[1] + (bot[1] - top[1]) * v];
+}
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = "rgba(0,255,255,0.55)";
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i <= 8; i++) {
+    let a = bilinear(i / 8, 0), b = bilinear(i / 8, 1);
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    a = bilinear(0, i / 8); b = bilinear(1, i / 8);
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function draw() {
+  const im = state[idx];
+  const img = getImage(idx);
+  ctx.clearRect(0, 0, W, H);
+  if (img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, W, H);
+  else { ctx.fillStyle = "#333"; ctx.fillRect(0, 0, W, H); }
+  if (showGrid) drawGrid();
+  im.boxes.forEach((b, i) => {
+    const r = toPx(b);
+    const color = `hsl(${(b.cls * 47) % 360} 90% 60%)`;
+    ctx.lineWidth = i === selected ? 4 : 2;
+    ctx.strokeStyle = color;
+    ctx.strokeRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
+    ctx.font = "15px system-ui";
+    const label = `${i + 1} ${names[b.cls] ?? b.cls}`;
+    const tw = ctx.measureText(label).width + 8;
+    ctx.fillStyle = color;
+    ctx.fillRect(r.x1, Math.max(0, r.y1 - 18), tw, 18);
+    ctx.fillStyle = "#000";
+    ctx.fillText(label, r.x1 + 4, Math.max(13, r.y1 - 4));
+    if (i === selected) {
+      ctx.fillStyle = "#fff";
+      for (const [hx, hy] of corners(r)) ctx.fillRect(hx - HANDLE / 2, hy - HANDLE / 2, HANDLE, HANDLE);
+    }
+  });
+  if (drag && drag.type === "create" && drag.rect) {
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+    const r = drag.rect;
+    ctx.strokeRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
+    ctx.setLineDash([]);
+  }
+  const edited = state.filter(s => s.edited).length;
+  document.getElementById("pos").textContent = `${idx + 1} / ${state.length}`;
+  document.getElementById("info").textContent =
+    `${im.file} · ${im.split} · ${im.boxes.length} cajas` + (im.edited ? " · editada" : "") +
+    ` · imágenes editadas: ${edited}/${state.length}` + (drawMode ? " · MODO DIBUJAR" : "");
+  document.getElementById("draw").style.background = drawMode ? "#2a6" : "";
+}
+
+function corners(r) {
+  return [[r.x1, r.y1], [r.x2, r.y1], [r.x1, r.y2], [r.x2, r.y2]];
+}
+
+function pointer(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: (e.clientX - rect.left) * (W / rect.width), y: (e.clientY - rect.top) * (H / rect.height) };
+}
+
+function hitTest(p) {
+  // Esquinas de la caja seleccionada primero
+  if (selected >= 0) {
+    const r = toPx(state[idx].boxes[selected]);
+    const cs = corners(r);
+    for (let k = 0; k < 4; k++) if (Math.abs(p.x - cs[k][0]) <= HANDLE && Math.abs(p.y - cs[k][1]) <= HANDLE)
+      return { type: "resize", i: selected, corner: k };
+  }
+  // La última caja dibujada gana si se solapan
+  const boxes = state[idx].boxes;
+  for (let i = boxes.length - 1; i >= 0; i--) {
+    const r = toPx(boxes[i]);
+    if (p.x >= r.x1 && p.x <= r.x2 && p.y >= r.y1 && p.y <= r.y2) return { type: "move", i };
+  }
+  return null;
+}
+
+canvas.addEventListener("pointerdown", e => {
+  const p = pointer(e);
+  canvas.setPointerCapture(e.pointerId);
+  if (drawMode) {
+    drag = { type: "create", start: p, rect: { x1: p.x, y1: p.y, x2: p.x, y2: p.y } };
+    selected = -1;
+  } else {
+    const hit = hitTest(p);
+    if (!hit) { selected = -1; draw(); return; }
+    selected = hit.i;
+    const b = state[idx].boxes[hit.i];
+    const r = toPx(b);
+    if (hit.type === "resize") {
+      drag = { type: "resize", i: hit.i, corner: hit.corner, orig: r };
+    } else {
+      drag = { type: "move", i: hit.i, start: p, orig: r };
+    }
+    clsSelect.value = b.cls;
+  }
+  draw();
+});
+
+canvas.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const p = pointer(e);
+  if (drag.type === "create") {
+    drag.rect = { x1: drag.start.x, y1: drag.start.y, x2: p.x, y2: p.y };
+  } else if (drag.type === "move") {
+    const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+    const r = { x1: drag.orig.x1 + dx, y1: drag.orig.y1 + dy, x2: drag.orig.x2 + dx, y2: drag.orig.y2 + dy };
+    const nb = fromPx(r);
+    Object.assign(state[idx].boxes[drag.i], nb);
+  } else if (drag.type === "resize") {
+    const o = drag.orig;
+    // corner: 0 TL, 1 TR, 2 BL, 3 BR
+    const r = { x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2 };
+    if (drag.corner === 0 || drag.corner === 2) r.x1 = p.x; else r.x2 = p.x;
+    if (drag.corner === 0 || drag.corner === 1) r.y1 = p.y; else r.y2 = p.y;
+    Object.assign(state[idx].boxes[drag.i], fromPx(r));
+  }
+  draw();
+});
+
+function endDrag() {
+  if (!drag) return;
+  if (drag.type === "create") {
+    const r = drag.rect;
+    if (Math.abs(r.x2 - r.x1) > 4 && Math.abs(r.y2 - r.y1) > 4) {
+      state[idx].boxes.push({ cls: Number(clsSelect.value), ...fromPx(r) });
+      selected = state[idx].boxes.length - 1;
+      markEdited();
+    }
+  } else {
+    markEdited();
+  }
+  drag = null;
+  draw();
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+function markEdited() { state[idx].edited = true; saveState(); }
+
+clsSelect.addEventListener("change", () => {
+  if (selected >= 0) { state[idx].boxes[selected].cls = Number(clsSelect.value); markEdited(); draw(); }
+});
+
+function deleteSelected() {
+  if (selected < 0) return;
+  state[idx].boxes.splice(selected, 1);
+  selected = -1;
+  markEdited();
+  draw();
+}
+
+function go(d) {
+  idx = (idx + d + state.length) % state.length;
+  selected = -1;
+  if (!state[idx].src) return;
+  getImage(idx);
+  draw();
+}
+
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.getElementById("del").onclick = deleteSelected;
+document.getElementById("draw").onclick = () => { drawMode = !drawMode; draw(); };
+document.getElementById("grid").onchange = e => { showGrid = e.target.checked; draw(); };
+document.getElementById("reset").onclick = () => {
+  if (!confirm("¿Volver a las etiquetas automáticas de esta imagen? Se pierden tus cambios aquí.")) return;
+  const orig = DATA.images[idx];
+  state[idx] = { file: orig.file, split: orig.split, src: orig.src, boxes: deepCopy(orig.boxes), edited: false };
+  selected = -1;
+  saveState();
+  draw();
+};
+
+document.getElementById("export").onclick = () => {
+  const out = {
+    format: "yolo-corrections-v1",
+    classes: names,
+    images: state.map(s => ({ file: s.file, split: s.split, edited: s.edited, boxes: s.boxes.map(b => ({
+      cls: b.cls, cx: +b.cx.toFixed(6), cy: +b.cy.toFixed(6), w: +b.w.toFixed(6), h: +b.h.toFixed(6) })) })),
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "corrections.json";
+  a.click();
+};
+
+window.addEventListener("keydown", e => {
+  if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase();
+  if (k === "n" || e.key === "ArrowRight") go(1);
+  else if (k === "p" || e.key === "ArrowLeft") go(-1);
+  else if (k === "d") { drawMode = !drawMode; draw(); }
+  else if (k === "g") { showGrid = !showGrid; document.getElementById("grid").checked = showGrid; draw(); }
+  else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelected(); }
+  else if (e.key === "Escape") { drawMode = false; selected = -1; draw(); }
+});
+
+draw();
+</script>
+</body>
+</html>

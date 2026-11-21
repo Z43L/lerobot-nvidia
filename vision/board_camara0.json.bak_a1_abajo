@@ -1,0 +1,26 @@
+{
+  "descripcion": "Área de juego 8x8 vista por la cámara 0 (YOLO), 1280x960. Recalibrado el 2026-11-21 comparando la rejilla con el damero (vista cenital deformada): filas y columnas caen en las casillas y el pliegue queda en el centro. Tablero en posición inicial.",
+  "corners_px": {
+    "TL": [
+      614,
+      308
+    ],
+    "TR": [
+      939,
+      295
+    ],
+    "BR": [
+      1066,
+      563
+    ],
+    "BL": [
+      647,
+      586
+    ]
+  },
+  "orientacion": "blancas a la derecha de la imagen: a1 = esquina inferior-derecha (BR), rango 1 a la derecha (BR-TR), archivo a abajo (BR-BL)",
+  "imagen": [
+    1280,
+    960
+  ]
+}

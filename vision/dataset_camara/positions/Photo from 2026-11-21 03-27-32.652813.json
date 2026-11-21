@@ -1,0 +1,10 @@
+{
+ "fen": "8/8/8/8/P7/8/2k1K3/8",
+ "pieces": {
+  "a4": "wP",
+  "c2": "bK",
+  "e2": "wK"
+ },
+ "count": 3,
+ "orientation": "blancas a la derecha de la foto, a1 abajo-derecha"
+}

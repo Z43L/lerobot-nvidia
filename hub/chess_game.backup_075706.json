@@ -1,0 +1,114 @@
+{
+  "fen": "rnbqkbnr/pppp1p1p/8/3Q4/4P3/5P2/PPP2P1P/RNB1KB1R b KQkq - 0 6",
+  "history": [
+    {
+      "ply": 1,
+      "who": "humano",
+      "uci": "e2e4",
+      "san": "e4",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 2,
+      "who": "robot",
+      "uci": "g7g5",
+      "san": "g5",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 3,
+      "who": "humano",
+      "uci": "g1f3",
+      "san": "Nf3",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 4,
+      "who": "robot",
+      "uci": "g5g4",
+      "san": "g4",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 5,
+      "who": "humano",
+      "uci": "d2d4",
+      "san": "d4",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 6,
+      "who": "robot",
+      "uci": "g4f3",
+      "san": "gxf3",
+      "board_ok": true,
+      "steps": [
+        "captura en f3"
+      ],
+      "bad_squares": []
+    },
+    {
+      "ply": 7,
+      "who": "humano",
+      "uci": "g2f3",
+      "san": "gxf3",
+      "board_ok": true,
+      "steps": [
+        "captura en f3"
+      ],
+      "bad_squares": []
+    },
+    {
+      "ply": 8,
+      "who": "robot",
+      "uci": "e7e6",
+      "san": "e6",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 9,
+      "who": "humano",
+      "uci": "d4d5",
+      "san": "d5",
+      "board_ok": true,
+      "steps": [],
+      "bad_squares": []
+    },
+    {
+      "ply": 10,
+      "who": "robot",
+      "uci": "e6d5",
+      "san": "exd5",
+      "board_ok": true,
+      "steps": [
+        "captura en d5"
+      ],
+      "bad_squares": []
+    },
+    {
+      "ply": 11,
+      "who": "humano",
+      "uci": "d1d5",
+      "san": "Qxd5",
+      "board_ok": true,
+      "steps": [
+        "captura en d5"
+      ],
+      "bad_squares": []
+    }
+  ],
+  "robot_color": "black",
+  "backend": "sim"
+}

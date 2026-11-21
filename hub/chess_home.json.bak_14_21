@@ -1,0 +1,12 @@
+{
+  "pose_origen_grados": {
+    "shoulder_pan": -4.7,
+    "shoulder_lift": -8.8,
+    "elbow_flex": 10.7,
+    "wrist_flex": 91.0,
+    "wrist_roll": 166.6,
+    "gripper": 2.4
+  },
+  "fecha": "2026-11-21 14:21",
+  "nota": "colocada a mano por el usuario"
+}

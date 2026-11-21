@@ -1,0 +1,43 @@
+== Preflight (test de agarre guionizado en e2, 2.0 grados/paso) ==
+
+== e2 -> e2 (peon, vuelve a la misma casilla) ==
+  ORIGEN             [-0.6, -97.5, 97.0, -44.6] grados  +0 pasos
+  encima origen      [1.0, -3.9, 2.4, 95.1] inclinacion   15 grados  +70 pasos
+  agarre origen      [1.0, 14.8, 9.3, 84.2] inclinacion    0 grados  +10 pasos
+  subir con pieza    [1.0, -3.9, 2.4, 95.1] inclinacion   15 grados  +10 pasos
+  encima destino     [1.0, -4.0, 0.9, 96.2] inclinacion   15 grados  +1 pasos
+  soltar destino     [1.0, 14.5, 8.0, 85.8] inclinacion    0 grados  +10 pasos
+  subir              [1.0, -4.0, 0.9, 96.2] inclinacion   15 grados  +10 pasos
+  ORIGEN             [-0.6, -97.5, 97.0, -44.6] grados  +71 pasos
+  total aprox 182 pasos = 6 s a 2.0 grados/paso (sin contar ACT/pinza)
+  mayor salto de articulacion de ORIGEN a 'encima origen': 140 grados
+
+Sin bloqueos.
+
+== test e2->e2 ==
+  ORIGEN             [-0.6, -97.5, 97.0, -44.6] grados  +0 pasos
+  encima origen      [1.0, -3.9, 2.4, 95.1] inclinacion   15 grados  +70 pasos
+  agarre origen      [1.0, 14.8, 9.3, 84.2] inclinacion    0 grados  +10 pasos
+  subir con pieza    [1.0, -3.9, 2.4, 95.1] inclinacion   15 grados  +10 pasos
+  encima destino     [1.0, -4.0, 0.9, 96.2] inclinacion   15 grados  +1 pasos
+  soltar destino     [1.0, 14.5, 8.0, 85.8] inclinacion    0 grados  +10 pasos
+  subir              [1.0, -4.0, 0.9, 96.2] inclinacion   15 grados  +10 pasos
+  ORIGEN             [-0.6, -97.5, 97.0, -44.6] grados  +71 pasos
+  total aprox 182 pasos = 6 s a 2.0 grados/paso (sin contar ACT/pinza)
+Brazo en el origen. Torque encendido: SUELTA el brazo y apartate de su zona. Empiezo en 5 s (Ctrl+C o corte de alimentacion para parar).
+Traceback (most recent call last):
+  File "/Users/david/Desktop/lerobot-nvidia/hub/chess_ik_exec.py", line 513, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/david/Desktop/lerobot-nvidia/hub/chess_ik_exec.py", line 509, in main
+    return {"plan": cmd_plan, "act-offline": cmd_act_offline, "set-home": cmd_set_home, "test-grasp": cmd_test_grasp, "make-home": cmd_make_home, "run": cmd_run}[a.cmd](a)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/david/Desktop/lerobot-nvidia/hub/chess_ik_exec.py", line 433, in cmd_test_grasp
+    r = ex.pick_place(f"test {sq}->{sq}", chess.PAWN, xy, xy)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/david/Desktop/lerobot-nvidia/hub/chess_ik_exec.py", line 328, in pick_place
+    arm.goto(q6(wp[1], GRIP_OPEN))                     # encima del origen, pinza abierta
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/david/Desktop/lerobot-nvidia/hub/chess_ik_exec.py", line 204, in goto
+    raise RuntimeError("no converge al waypoint (carga, tope o colision): me paro")
+RuntimeError: no converge al waypoint (carga, tope o colision): me paro

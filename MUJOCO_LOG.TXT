@@ -1,0 +1,16 @@
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:08:22 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:08:25 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:08:32 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:09:19 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:09:24 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:10:54 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:13:19 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1203) Thu Nov 19 23:14:22 2026: attempting to copy mjData while stack is in use
+

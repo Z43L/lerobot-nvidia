@@ -1,0 +1,6 @@
+{
+  "descripcion": "Área de juego 8x8 en las fotos de Camera/ (1280x720). Medido en la foto con el tablero vacío (foto 72).",
+  "corners_px": {"TL": [632.5, 197.5], "TR": [975.0, 195.0], "BR": [1055.0, 470.0], "BL": [657.5, 472.5]},
+  "orientacion": "blancas a la derecha de la foto: a1 = esquina inferior-derecha (BR), rango 1 a la derecha (BR-TR), archivo a abajo (BR-BL)",
+  "imagen": [1280, 720]
+}

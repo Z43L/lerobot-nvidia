@@ -1,0 +1,24 @@
+{
+ "fen": "r3kr2/p1p2p2/8/3p4/N7/6Pp/PBP1Q2q/R3K3",
+ "pieces": {
+  "a1": "wR",
+  "a2": "wP",
+  "a4": "wN",
+  "a7": "bP",
+  "a8": "bR",
+  "b2": "wB",
+  "c2": "wP",
+  "c7": "bP",
+  "d5": "bP",
+  "e1": "wK",
+  "e2": "wQ",
+  "e8": "bK",
+  "f7": "bP",
+  "f8": "bR",
+  "g3": "wP",
+  "h2": "bQ",
+  "h3": "bP"
+ },
+ "count": 17,
+ "orientation": "blancas a la derecha de la foto, a1 abajo-derecha"
+}

@@ -1,0 +1,30 @@
+{
+  "created": "2026-11-21T06:10:25",
+  "camera_index": 0,
+  "order": [
+    "a1",
+    "h1",
+    "h8",
+    "a8"
+  ],
+  "corners_px": [
+    [
+      1371.0,
+      752.0
+    ],
+    [
+      645.0,
+      683.0
+    ],
+    [
+      755.0,
+      170.0
+    ],
+    [
+      1345.0,
+      215.0
+    ]
+  ],
+  "image": "vision/frames/board_top.png",
+  "status": "pendiente_verificar_overlay"
+}

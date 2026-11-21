@@ -1,0 +1,56 @@
+{   'wrist_flex': {   'original goal_pos': -97.94065934065934,
+                      'safe goal_pos': -98.34065934065934}}
+{   'wrist_flex': {   'original goal_pos': -94.41098901098901,
+                      'safe goal_pos': -94.01098901098901}}
+{   'elbow_flex': {   'original goal_pos': 95.47912087912087,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 95.07912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 94.67912087912087,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 94.27912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 93.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 93.47912087912087,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 93.07912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+{   'elbow_flex': {   'original goal_pos': 92.87912087912088,
+                      'safe goal_pos': 95.87912087912088}}
+pose inicial: {'shoulder_pan': -0.6, 'shoulder_lift': -97.4, 'elbow_flex': 96.9, 'wrist_flex': -99.3, 'wrist_roll': 165.5, 'gripper': 2.4}
+wrist_flex ida: {'llego': True, 'pos_final': -93.0, 'objetivo': -92.3, 'carga_max': 40}
+wrist_flex vuelta: {'llego': True, 'pos_final': -98.7, 'objetivo': -99.3, 'carga_max': 40}
+elbow_flex ida: SIN AVANCE en 15 ticks (pos 96.9, objetivo 89.9, carga 60, corriente 2)
+elbow_flex ida: {'llego': False, 'pos_final': 96.9, 'objetivo': 89.9, 'carga_max': 60}
+Paro aqui: no sigo con otras articulaciones.
+pose final: {'shoulder_pan': -0.6, 'shoulder_lift': -97.4, 'elbow_flex': 96.9, 'wrist_flex': -98.6, 'wrist_roll': 165.5, 'gripper': 2.4}
+Vuelta al reposo: TORQUE APAGADO.

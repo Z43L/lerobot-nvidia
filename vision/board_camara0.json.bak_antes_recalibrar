@@ -1,0 +1,26 @@
+{
+  "descripcion": "Área de juego 8x8 vista por la cámara 0 (YOLO), 1280x960. Medido a ojo con el tablero en posición inicial. Con estas esquinas los 16 peones salen bien; mover el borde inferior 14 px los descoloca.",
+  "corners_px": {
+    "TL": [
+      610,
+      303
+    ],
+    "TR": [
+      1000,
+      303
+    ],
+    "BR": [
+      1110,
+      598
+    ],
+    "BL": [
+      622,
+      598
+    ]
+  },
+  "orientacion": "blancas a la derecha de la imagen: a1 = esquina inferior-derecha (BR), rango 1 a la derecha (BR-TR), archivo a abajo (BR-BL)",
+  "imagen": [
+    1280,
+    960
+  ]
+}

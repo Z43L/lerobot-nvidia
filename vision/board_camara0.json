@@ -1,0 +1,26 @@
+{
+  "descripcion": "Area de juego 8x8, camara 0 (YOLO), 1280x960. Pixeles medidos el 2026-11-21 (rejilla vs damero). Etiquetas estandar (opcion A).",
+  "corners_px": {
+    "TL": [
+      614,
+      308
+    ],
+    "TR": [
+      939,
+      295
+    ],
+    "BR": [
+      1066,
+      563
+    ],
+    "BL": [
+      647,
+      586
+    ]
+  },
+  "orientacion": "ETIQUETAS ESTANDAR (reglas): blancas a la derecha de la imagen, a1 = esquina inferior-derecha (lejos del robot), h1 = superior-derecha (junto al robot), a8 = inferior-izquierda, h8 = superior-izquierda. La dama blanca va en d1 (4a casilla desde a1). Las etiquetas IMPRESAS del tablero real estan espejadas (su a1 es nuestra h1). Claves TL/TR/BR/BL = rejilla interna del codigo (TL=h8, TR=h1, BR=a1, BL=a8), posicion fisica en la imagen.",
+  "imagen": [
+    1280,
+    960
+  ]
+}

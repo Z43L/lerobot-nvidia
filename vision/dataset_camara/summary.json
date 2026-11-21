@@ -1,0 +1,461 @@
+{
+  "source": "/Users/david/Desktop/lerobot-nvidia/Camera",
+  "model": "/Users/david/Desktop/lerobot-nvidia/runs/detect/vision/runs/pieces/weights/best.pt",
+  "conf": 0.25,
+  "iou": 0.5,
+  "imgsz": 960,
+  "images": 86,
+  "train": 69,
+  "val": 17,
+  "boxes_total": 1065,
+  "boxes_per_class": {
+    "bishop": 0,
+    "black-bishop": 78,
+    "black-king": 0,
+    "black-knight": 56,
+    "black-pawn": 170,
+    "black-queen": 43,
+    "black-rook": 204,
+    "white-bishop": 206,
+    "white-king": 0,
+    "white-knight": 115,
+    "white-pawn": 53,
+    "white-queen": 28,
+    "white-rook": 112
+  },
+  "images_without_boxes": [
+    "Photo from 2026-11-21 03-27-59.944479.jpeg"
+  ],
+  "per_image": [
+    {
+      "file": "Photo from 2026-11-21 03-19-17.222317.jpeg",
+      "split": "train",
+      "boxes": 10
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-19.056850.jpeg",
+      "split": "val",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-23.815354.jpeg",
+      "split": "train",
+      "boxes": 14
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-29.755922.jpeg",
+      "split": "train",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-34.982631.jpeg",
+      "split": "train",
+      "boxes": 17
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-39.761173.jpeg",
+      "split": "train",
+      "boxes": 17
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-44.412723.jpeg",
+      "split": "train",
+      "boxes": 14
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-49.177061.jpeg",
+      "split": "val",
+      "boxes": 13
+    },
+    {
+      "file": "Photo from 2026-11-21 03-19-56.620626.jpeg",
+      "split": "val",
+      "boxes": 15
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-03.061626.jpeg",
+      "split": "train",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-08.993681.jpeg",
+      "split": "train",
+      "boxes": 19
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-16.742942.jpeg",
+      "split": "val",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-20.538310.jpeg",
+      "split": "train",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-25.206684.jpeg",
+      "split": "train",
+      "boxes": 21
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-38.118841.jpeg",
+      "split": "train",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-43.839040.jpeg",
+      "split": "train",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-20-54.308521.jpeg",
+      "split": "train",
+      "boxes": 19
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-12.457038.jpeg",
+      "split": "train",
+      "boxes": 20
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-16.861751.jpeg",
+      "split": "train",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-20.235454.jpeg",
+      "split": "val",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-26.459636.jpeg",
+      "split": "train",
+      "boxes": 18
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-32.333589.jpeg",
+      "split": "train",
+      "boxes": 15
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-38.166978.jpeg",
+      "split": "train",
+      "boxes": 15
+    },
+    {
+      "file": "Photo from 2026-11-21 03-21-58.500449.jpeg",
+      "split": "val",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-22-08.858573.jpeg",
+      "split": "val",
+      "boxes": 17
+    },
+    {
+      "file": "Photo from 2026-11-21 03-22-14.070382.jpeg",
+      "split": "train",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-22-24.285150.jpeg",
+      "split": "val",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-22-32.028008.jpeg",
+      "split": "train",
+      "boxes": 15
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-01.870249.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-08.016135.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-11.290933.jpeg",
+      "split": "train",
+      "boxes": 14
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-16.722647.jpeg",
+      "split": "train",
+      "boxes": 13
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-20.432879.jpeg",
+      "split": "train",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-23.970258.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-28.534214.jpeg",
+      "split": "val",
+      "boxes": 13
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-34.132723.jpeg",
+      "split": "train",
+      "boxes": 13
+    },
+    {
+      "file": "Photo from 2026-11-21 03-23-47.400350.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-03.043373.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-07.118259.jpeg",
+      "split": "train",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-15.658499.jpeg",
+      "split": "train",
+      "boxes": 14
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-20.340474.jpeg",
+      "split": "train",
+      "boxes": 14
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-26.274650.jpeg",
+      "split": "val",
+      "boxes": 13
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-32.081659.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-37.758311.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-43.235904.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-47.588568.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-52.421653.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-24-57.003008.jpeg",
+      "split": "val",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-25-02.854487.jpeg",
+      "split": "train",
+      "boxes": 10
+    },
+    {
+      "file": "Photo from 2026-11-21 03-25-11.355940.jpeg",
+      "split": "train",
+      "boxes": 10
+    },
+    {
+      "file": "Photo from 2026-11-21 03-25-30.321639.jpeg",
+      "split": "train",
+      "boxes": 10
+    },
+    {
+      "file": "Photo from 2026-11-21 03-25-37.578884.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-25-45.055252.jpeg",
+      "split": "val",
+      "boxes": 8
+    },
+    {
+      "file": "Photo from 2026-11-21 03-25-53.488443.jpeg",
+      "split": "train",
+      "boxes": 9
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-00.654008.jpeg",
+      "split": "val",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-09.204606.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-13.943862.jpeg",
+      "split": "train",
+      "boxes": 10
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-18.117251.jpeg",
+      "split": "train",
+      "boxes": 9
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-30.052368.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-36.213778.jpeg",
+      "split": "train",
+      "boxes": 8
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-43.680418.jpeg",
+      "split": "val",
+      "boxes": 6
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-50.301250.jpeg",
+      "split": "train",
+      "boxes": 7
+    },
+    {
+      "file": "Photo from 2026-11-21 03-26-58.955005.jpeg",
+      "split": "train",
+      "boxes": 6
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-05.090481.jpeg",
+      "split": "train",
+      "boxes": 5
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-11.493779.jpeg",
+      "split": "train",
+      "boxes": 4
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-14.632699.jpeg",
+      "split": "train",
+      "boxes": 5
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-17.757823.jpeg",
+      "split": "train",
+      "boxes": 6
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-21.261001.jpeg",
+      "split": "val",
+      "boxes": 3
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-25.609356.jpeg",
+      "split": "train",
+      "boxes": 3
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-29.228295.jpeg",
+      "split": "train",
+      "boxes": 2
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-32.652813.jpeg",
+      "split": "train",
+      "boxes": 2
+    },
+    {
+      "file": "Photo from 2026-11-21 03-27-59.944479.jpeg",
+      "split": "train",
+      "boxes": 0
+    },
+    {
+      "file": "Photo from 2026-11-21 03-32-23.363899.jpeg",
+      "split": "train",
+      "boxes": 14
+    },
+    {
+      "file": "Photo from 2026-11-21 03-32-28.705093.jpeg",
+      "split": "train",
+      "boxes": 15
+    },
+    {
+      "file": "Photo from 2026-11-21 03-32-34.409177.jpeg",
+      "split": "train",
+      "boxes": 12
+    },
+    {
+      "file": "Photo from 2026-11-21 03-32-41.461220.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-32-47.178301.jpeg",
+      "split": "val",
+      "boxes": 10
+    },
+    {
+      "file": "Photo from 2026-11-21 03-32-56.858687.jpeg",
+      "split": "train",
+      "boxes": 17
+    },
+    {
+      "file": "Photo from 2026-11-21 03-33-02.850475.jpeg",
+      "split": "train",
+      "boxes": 20
+    },
+    {
+      "file": "Photo from 2026-11-21 03-33-17.623128.jpeg",
+      "split": "val",
+      "boxes": 16
+    },
+    {
+      "file": "Photo from 2026-11-21 03-33-23.763855.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-33-46.547259.jpeg",
+      "split": "train",
+      "boxes": 11
+    },
+    {
+      "file": "Photo from 2026-11-21 03-33-56.108559.jpeg",
+      "split": "train",
+      "boxes": 13
+    },
+    {
+      "file": "Photo from 2026-11-21 03-34-05.704808.jpeg",
+      "split": "train",
+      "boxes": 9
+    },
+    {
+      "file": "Photo from 2026-11-21 03-34-18.648377.jpeg",
+      "split": "train",
+      "boxes": 9
+    },
+    {
+      "file": "Photo from 2026-11-21 03-34-34.807041.jpeg",
+      "split": "train",
+      "boxes": 12
+    }
+  ]
+}

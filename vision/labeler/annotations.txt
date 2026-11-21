@@ -1,0 +1,87 @@
+# Una línea por foto; ver annotate_tools.py. Orientación: blancas a la derecha, a1 abajo-derecha.
+01: pos wRa1 wNb1 wBc1 wQd1 wKe1 wBf1 wNg1 wRh1 wPa2 wPb2 wPc2 wPd2 wPe2 wPf2 wPg2 wPh2 bPa7 bPb7 bPc7 bPd7 bPe7 bPf7 bPg7 bPh7 bRa8 bNb8 bBc8 bQd8 bKe8 bBf8 bNg8 bRh8
+02: =
+03: d2d4
+04: d7d5
+05: g1f3
+06: g8f6
+07: b1c3
+08: e7e6
+09: b8c6
+10: e2e3
+11: f8b4
+12: =
+13: g2g3
+14: g7g5
+15: xd4 c6d4
+16: =
+17: xd4 f3d4
+18: d8d6 xf2   # peón f2 levantado (en mano), no visible
+19: +wPf4
+20: xf4 g5f4
+21: xf4 e3f4
+22: f6e4
+23: xe4 c3e4
+24: b4a3
+25: xf4 d6f4
+26: h7h5
+27: xf1 f4f1
+28: =
+29: xb2 a3b2
+30: xb2 c1b2
+31: h5h4
+32: h4h3
+33: e4c5
+34: d4f5
+35: f5g7
+36: xe6 g7e6
+37: xb7 c5b7
+38: xh1 f1h1
+39: e6c5
+40: b7e6
+41: e6f8
+42: c5a4
+43: xh2 h1h2
+44: xf8 h8f8
+45: c8a6
+46: a6e2
+47: xe2 d1e2
+48: b2h8
+49: xg3 h2g3
+50: xd5 a4d5
+51: xf8 h8f8
+52: g3b1
+53: xa7 f8a7
+54: =
+55: xa1 b1a1
+56: h3h2
+57: d5f6
+58: h2h1
+59: xh1 +bQh1
+60: xf6 a1f6
+61: xe2 h1e2
+62: xe2 e1e2
+63: f6b3
+64: xb3 a7b3
+65: xa8 b3a8
+66: f7g3
+67: c7a4
+68: xg3 a8g3
+69: xa4 a2a4
+70: xg3 e8g3
+71: xc2 g3c2
+72: pos   # tablero vacío
+73: pos wQg8 wNf7 wBh5 wRe5 wNe3 wPd1 wPb2 wBa4 wPb5 bRe8 bBc8 bPb8 bPh7 bNa7 bRd6 bNd3 bQg3 bKg1 bRa1
+74: =
+75: f7g5
+76: a4c2
+77: xh7 g8h7
+78: +wPg4 +wPh2 +bPf6 +bPa4 +bPa3 +bPb3 +wPa5
+79: +bPc5 +bPc4
+80: e5d4 xc8 xb8 xa1 xa4
+81: xg5 xh5 xg4 xg3 xh2
+82: xb2 xc2 xd4 xe3 xb5 xd3 xb3 xc5 d6c5 +wPg8 +wBc8 +wNh3 +wKe2 +wPc1 +wPb1 +bPg2
+83: xd1 xc1 xb1 xa3 +wPg5 +wBd7 +wPc3 +bPe5
+84: xc8 xd7 xg1 xg2 +wRd1 +wNa1
+85: xg5 xh3 xc3 e2b2 xe8 xf6 xa7 c5c7 e5f5 a1g1 +wNc6 +bNh4 +bPf3
+86: xc6 c7d7 +wBe8 +wPh5 +wNc3 +wBb7 +bKh2 +bPe4 +bRa1

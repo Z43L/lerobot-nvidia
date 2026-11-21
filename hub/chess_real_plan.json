@@ -1,0 +1,20 @@
+{
+  "uci": "d2d4",
+  "executor": "dry",
+  "geometria": "chess_board.json",
+  "geometria_real": false,
+  "plan": [
+    {
+      "label": "d2->d4",
+      "pieza": "peón",
+      "src_xy": [
+        0.145,
+        -0.015
+      ],
+      "dst_xy": [
+        0.205,
+        -0.015
+      ]
+    }
+  ]
+}

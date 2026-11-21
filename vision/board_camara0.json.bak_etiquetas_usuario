@@ -1,0 +1,26 @@
+{
+  "descripcion": "Área de juego 8x8, cámara 0 (YOLO), 1280x960. Píxeles medidos el 2026-11-21 (rejilla comparada con el damero); etiquetas con a1 arriba a la derecha.",
+  "corners_px": {
+    "TL": [
+      647,
+      586
+    ],
+    "TR": [
+      1066,
+      563
+    ],
+    "BR": [
+      939,
+      295
+    ],
+    "BL": [
+      614,
+      308
+    ]
+  },
+  "orientacion": "blancas a la derecha de la imagen; a1 = esquina SUPERIOR-derecha (junto al robot), h1 = inferior-derecha, a8 = superior-izquierda, h8 = inferior-izquierda. Confirmado por el usuario el 2026-11-21 (la punta del brazo estaba en la esquina a1 junto al robot). Las claves TL/TR/BR/BL son la rejilla interna del código (TL=h8, TR=h1, BR=a1, BL=a8), no la posición en la imagen.",
+  "imagen": [
+    1280,
+    960
+  ]
+}
