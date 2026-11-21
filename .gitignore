@@ -30,3 +30,6 @@ hub/chess_game.json
 # Log de MuJoCo y escena de ajedrez generada en cada ejecución
 MUJOCO_LOG.TXT
 sim/so101/scene_chess.xml
+
+# Checkpoints/modelos grandes (superan el límite de GitHub)
+modeloACT/
