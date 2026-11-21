@@ -33,7 +33,7 @@ ln -s ~/lerobot312 .venv312                         # .mcp.json usa ./.venv312
   `SO101_FOLLOWER_PORT`, `SO101_LEADER_PORT`, `SO101_FOLLOWER_ID`, `SO101_LEADER_ID`, `SO101_TOP_CAM`, `SO101_WRIST_CAM`,
   `SO101_MAX_RELATIVE_TARGET="2"`.
 - **Calibración del seguidor**: `~/.cache/huggingface/lerobot/calibration/robots/so_follower/<ID>.json`. Sin ella no hay IK.
-- **Modelos ACT**: ver `pipeline/MODELOS_ACT.md`. Se copian con `rsync`, porque no están en git.
+- **Modelos ACT**: van en el repo con Git LFS (`models/act/`). Hace falta `git-lfs` (`brew install git-lfs`); `host_validate.sh` hace el `git lfs pull`.
 - **Permiso de cámara de macOS** para la app que lanza el shell (Terminal o VS Code).
 - Reinicia Claude Code para que cargue el MCP `so101-chess`.
 
@@ -45,7 +45,7 @@ CAMERA=0 pipeline/host_validate.sh             # con las piezas en posición ini
 INSTALL_YOLO=1 pipeline/host_validate.sh       # si falta ultralytics (guarda pip freeze para volver atrás)
 ```
 
-El script crea `.venv312` si falta, instala lo básico (`chess`, `pyserial`, `mcp<2`), comprueba los modelos y ejecuta
+El script crea `.venv312` si falta, instala lo básico (`chess`, `pyserial`, `mcp<2`), descarga los modelos (`git lfs pull`) y ejecuta
 `pipeline/e2e_check.py`. El informe queda en `pipeline/runs/e2e_<fecha>/`. Sale con código 1 si hay algún FAIL.
 
 | Peldaño | Qué comprueba | Criterio de PASS |

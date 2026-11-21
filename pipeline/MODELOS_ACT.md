@@ -9,8 +9,8 @@ de la casilla y una caja de seguridad alrededor.
 
 | Nombre (`chess_config.ACT_MODELS`) | Ruta por defecto | Entrenado | Dataset |
 |---|---|---|---|
-| `hf-30k-cuda` | `~/act_tray_ckpts/checkpoints/030000/pretrained_model` (`ACT_HF_30K`) | Hugging Face, **CUDA**, checkpoint de 30k de una ejecución de 100k, batch 16 | `PIPEFD/data-play-tray-1-clean` (59 ep) |
-| `local-25k-mps` | `outputs/train/act_tray_clean_25000/checkpoints/025000/pretrained_model` (`ACT_LOCAL_25K`) | local, **MPS**, 25k pasos, batch 8 (`pipeline/train_play_tray.sh`), pérdida final ≈ 0,12 | el mismo |
+| `hf-30k-cuda` | `models/act/hf-30k-cuda/` (`ACT_HF_30K`) | Hugging Face, **CUDA**, checkpoint de 30k de una ejecución de 100k, batch 16 | `PIPEFD/data-play-tray-1-clean` (59 ep) |
+| `local-25k-mps` | `models/act/local-25k-mps/` (`ACT_LOCAL_25K`) | local, **MPS**, 25k pasos, batch 8 (`pipeline/train_play_tray.sh`), pérdida final ≈ 0,12 | el mismo |
 
 Elegir otro: `CHESS_ACT_CHECKPOINT=<ruta>`. Sin esa variable se usa el primero que exista, en el orden de la tabla.
 
@@ -45,13 +45,21 @@ Repetir la medida: `./.venv312/bin/python pipeline/e2e_check.py --stage models`.
   defecto, pensado para el agarre guionizado) se niega.
 - No vieron piezas de ajedrez. Que agarren piezas está por demostrar en el host (peldaño 7).
 
-## Copiarlos al host (los pesos no van en git)
+## Dónde están: en el repo, con Git LFS
+
+`models/act/<nombre>/` contiene el `pretrained_model` completo: `config.json`, `model.safetensors` (207 MB), los
+procesadores con sus estadísticas y `train_config.json`. No incluye `training_state` (solo hace falta para reanudar el
+entrenamiento). Los `*.safetensors` de `models/act/` van por Git LFS (`.gitattributes`).
 
 ```bash
-rsync -avh --progress ~/act_tray_ckpts/ USUARIO@HOST:~/act_tray_ckpts/
-rsync -avh --progress outputs/train/act_tray_clean_25000/checkpoints/025000/ \
-      USUARIO@HOST:<repo>/outputs/train/act_tray_clean_25000/checkpoints/025000/
+brew install git-lfs          # una vez, si falta
+git lfs install --local
+git lfs pull --include "models/act/**"
 ```
 
-Unos 200 MB por checkpoint. Para la evaluación offline en el host hace falta también el dataset en
-`~/data-play-tray-1-clean` (o `ACT_EVAL_DATASET`).
+Sin `git lfs pull` los ficheros son punteros de unos 134 bytes. `hub/chess_config.py` los salta y
+`pipeline/host_validate.sh` los marca como `PUNTERO`.
+
+Origen: `hf-30k-cuda` es el checkpoint 030000 de `act_tray_a100_100k`, descargado de Hugging Face (sha256 de
+`model.safetensors` = `e3b5df28…`, igual que el de la descarga). `local-25k-mps` es el checkpoint 025000 de
+`outputs/train/act_tray_clean_25000`, entrenado en el Mac de desarrollo.
