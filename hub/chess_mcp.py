@@ -8,15 +8,13 @@ Claude hace el bucle (mira -> decide -> mueve -> verifica). Este servidor solo o
     chess_state, chess_new, chess_plan, chess_commit
   Jugada completa (una llamada; dry por defecto)
     chess_move: mapa -> coger -> soltar -> pose final -> verificar con foto
-  Brazo (leen, o mueven con el permiso del usuario)
-    arm_state, arm_gripper_px, arm_jog, arm_probe, arm_servo, arm_stop
+  Brazo (leen, o mueven directamente; ALLOW_REAL_MOTION=0 los bloquea)
+    arm_state, arm_gripper_px, arm_jog, arm_probe, arm_servo, arm_stop, arm_resume
   ACT
     chess_act_step: solo corre con un ACT con objetivo (4 valores origen/destino). Con el ACT actual se niega.
 
-PERMISO DE MOVIMIENTO (cualquier herramienta que mueva el brazo):
-  1. ALLOW_REAL_MOTION=1 en el entorno del servidor, y
-  2. un permiso con caducidad que SOLO el usuario crea en su terminal:  real/authorize_motion.sh <minutos>
-     (escribe real/.motion_ok). Sin él, o caducado, nada se mueve. `arm_stop` lo revoca.
+MOVIMIENTO (política del 21-nov): directo, sin confirmación. ALLOW_REAL_MOTION=0 en el servidor lo para todo.
+  CHESS_REQUIRE_PERMISSION=1 vuelve al modo con permiso (ALLOW_REAL_MOTION=1 + real/authorize_motion.sh).
   Siempre: pasos de máx. 2 grados, límites de articulación, y la pinza y el brazo se quedan con torque al parar.
 
 Variables: CHESS_YOLO_CAM (0), CHESS_WRIST_CAM (2), CHESS_BOARD_GEOMETRY (vision/board_camara0.json),
@@ -145,7 +143,7 @@ def _cli(*args: str) -> str:
 
 
 # ------------------------------------------------------------------ permiso de movimiento
-motion_permission = CFG.motion_permission  # gate único (ALLOW_REAL_MOTION + permiso con caducidad)
+motion_permission = CFG.motion_permission  # gate único (parada con ALLOW_REAL_MOTION=0)
 
 
 def _arm():
@@ -174,7 +172,7 @@ def _joints_now() -> dict[str, float]:
 
 
 def _move_relative(deltas: dict[str, float], hz: float = CFG.HZ) -> dict:
-    """Mueve en pasos de STEP_DEG hacia (actual + delta), con límites. Requiere permiso. Devuelve antes/después."""
+    """Mueve en pasos de STEP_DEG hacia (actual + delta), con límites. Se bloquea con ALLOW_REAL_MOTION=0. Devuelve antes/después."""
     ok, why = motion_permission()
     if not ok:
         return {"status": "blocked", "message": why}
@@ -351,8 +349,7 @@ def chess_move(uci: str, executor: str = "dry") -> dict:
     y verificación con la cámara. NO registra la jugada: mira la foto y, si está bien, llama a chess_commit.
 
     executor: dry (por defecto, no mueve nada) | ik (IK + ACT genérico para agarrar) | ik-scripted (IK + agarre guionizado).
-    Los que mueven exigen ALLOW_REAL_MOTION=1 en el servidor Y el permiso con caducidad (real/authorize_motion.sh), y que el
-    usuario haya dado el SI para ESTA jugada. Claude nunca crea el permiso."""
+    Los que mueven se ejecutan directamente (ALLOW_REAL_MOTION=0 en el servidor los bloquea)."""
     from chess_real import Geometry, RealChessBackend, make_executor, moves_arm
 
     board = chess.Board(_game()["fen"])
@@ -388,14 +385,14 @@ def chess_move(uci: str, executor: str = "dry") -> dict:
         backend = RealChessBackend(executor=ex, geometry=Geometry(require_real=moves_arm(ex)), verify=verify)
         res = backend.execute(move, board)
     except RuntimeError as e:
-        return {"status": "error", "message": str(e), "siguiente": "Para. No reenvíes comandos. Revisa el brazo (corte de alimentación a mano si algo va mal)."}
+        return {"status": "error", "message": str(e), "siguiente": "Para. No reenvíes comandos en bucle. Revisa el brazo (arm_stop)."}
     out = {"status": "ok" if res["board_ok"] else "verification_failed", "uci": uci, "executor": ex.name,
            "pasos": res["steps"], "verificada": res["verified"], "problemas": res["bad_squares"]}
     if res["verified"]:
         out["foto"] = str(FRAMES / "chess_move_after.jpg")
         out["siguiente"] = "chess_commit(uci) si la foto confirma la jugada." if res["board_ok"] else "NO registres: corrige las piezas a mano y vuelve a mirar con chess_see."
     else:
-        out["siguiente"] = "Ensayo (dry): no se ha movido nada. Para ejecutar de verdad, repite con executor='ik' tras el SI del usuario."
+        out["siguiente"] = "Ensayo (dry): no se ha movido nada. Para ejecutar de verdad, repite con executor='ik-scripted' o 'ik'."
     return out
 
 
@@ -408,7 +405,7 @@ def chess_commit(uci: str) -> str:
 # ------------------------------------------------------------------ brazo
 @mcp.tool()
 def arm_state() -> dict:
-    """Lee las 6 articulaciones del seguidor (grados; pinza 0..100) y el estado del permiso. No mueve nada."""
+    """Lee las 6 articulaciones del seguidor (grados; pinza 0..100) y si el movimiento está permitido. No mueve nada."""
     ok, why = motion_permission()
     return {"joints": {k: round(v, 1) for k, v in _joints_now().items()}, "permiso_movimiento": ok, "detalle": why}
 
@@ -428,8 +425,7 @@ def arm_gripper_px() -> dict:
 
 @mcp.tool()
 def arm_jog(joint: str, delta_deg: float) -> dict:
-    """Mueve UNA articulación delta_deg grados (máx. 3 por llamada, pasos de 2°). Requiere ALLOW_REAL_MOTION=1 y el permiso
-    del usuario (real/authorize_motion.sh). Devuelve las articulaciones antes y después."""
+    """Mueve UNA articulación delta_deg grados (máx. 3 por llamada, pasos de 2°). Se bloquea con ALLOW_REAL_MOTION=0. Devuelve las articulaciones antes y después."""
     if abs(delta_deg) > MAX_JOG_DEG:
         return {"status": "rejected", "message": f"máximo {MAX_JOG_DEG}° por llamada"}
     return _move_relative({joint: float(delta_deg)})
@@ -487,9 +483,9 @@ def arm_health() -> dict:
 def arm_move(joints: dict[str, float], max_steps: int = 20, margin_deg: float = 3.0) -> dict:
     """Lleva las articulaciones indicadas a una pose ABSOLUTA (grados; pinza 0..100) en un tramo corto. Las demás no se tocan.
     Límites que impone el código (no Claude): rango calibrado de cada motor menos `margin_deg` (nunca hacia fuera del rango),
-    <= 2° por articulación y paso, <= 30 pasos por llamada, permiso de movimiento comprobado en cada paso (si caduca, para), y
+    <= 2° por articulación y paso, <= 30 pasos por llamada, gate comprobado en cada paso (si se activa la parada, para), y
     parada si una articulación pedida no avanza en 6 pasos (atasco: carga, tope o colisión). Devuelve antes, después y lo que
-    falta. Encadena llamadas mirando chess_camera entre una y otra. Requiere ALLOW_REAL_MOTION=1 y el permiso del usuario."""
+    falta. Encadena llamadas mirando chess_camera entre una y otra. Se bloquea con ALLOW_REAL_MOTION=0."""
     ok, why = motion_permission()
     if not ok:
         return {"status": "blocked", "message": why}
@@ -545,7 +541,7 @@ def arm_move(joints: dict[str, float], max_steps: int = 20, margin_deg: float = 
 @mcp.tool()
 def arm_probe(joints: list[str] | None = None, delta_deg: float = 3.0) -> dict:
     """Estima cuántos píxeles se mueve la punta del brazo en la cámara de YOLO por grado de cada articulación (jacobiano de
-    imagen, sin calibrar el mundo). Mueve cada articulación +delta_deg y la devuelve. Requiere permiso de movimiento.
+    imagen, sin calibrar el mundo). Mueve cada articulación +delta_deg y la devuelve. Se bloquea con ALLOW_REAL_MOTION=0.
     Guarda real/vision_jacobian.json. Solo vale mientras la cámara y el tablero no se muevan."""
     from gripper_locator import find_gripper
 
@@ -573,7 +569,7 @@ def arm_probe(joints: list[str] | None = None, delta_deg: float = 3.0) -> dict:
 
 @mcp.tool()
 def arm_servo(square: str, execute: bool = False, gain: float = 0.5) -> dict:
-    """Propone (o con execute=True ejecuta, con permiso) un paso para acercar la punta del brazo a la casilla `square`, según
+    """Propone (o con execute=True ejecuta) un paso para acercar la punta del brazo a la casilla `square`, según
     el error en píxeles y el jacobiano de arm_probe. Un paso mueve como mucho 3° por articulación. Repite mirando la imagen.
     No controla la altura (una sola cámara): la altura la gestiona el ACT/el usuario."""
     from gripper_locator import find_gripper
@@ -603,17 +599,26 @@ def arm_servo(square: str, execute: bool = False, gain: float = 0.5) -> dict:
 
 @mcp.tool()
 def arm_stop() -> dict:
-    """Revoca el permiso de movimiento y no envía más órdenes. NO corta el torque (el brazo se queda donde está).
-    Si algo va mal físicamente: corte de alimentación a mano."""
+    """PARADA: bloquea todas las herramientas que mueven el brazo en este servidor (ALLOW_REAL_MOTION=0) y revoca el permiso
+    con caducidad si lo hubiera. NO corta el torque (el brazo se queda donde está). Reanudar: arm_resume."""
+    os.environ["ALLOW_REAL_MOTION"] = "0"
     MOTION_FILE.unlink(missing_ok=True)
-    return {"status": "stopped", "message": "Permiso revocado. El usuario debe volver a autorizar para mover."}
+    return {"status": "stopped", "message": "Parada activada: nada se mueve hasta arm_resume."}
+
+
+@mcp.tool()
+def arm_resume() -> dict:
+    """Quita la parada de arm_stop (vuelve el movimiento directo). Úsalo solo cuando el usuario lo pida."""
+    os.environ["ALLOW_REAL_MOTION"] = "1"
+    ok, why = motion_permission()
+    return {"status": "resumed" if ok else "blocked", "message": why}
 
 
 # ------------------------------------------------------------------ ACT con objetivo
 @mcp.tool()
 def chess_act_step(src: str, dst: str, seconds: float = 15.0, checkpoint: str = "") -> dict:
     """Lanza un ACT CON OBJETIVO (4 valores: origen y destino) para coger la pieza en `src` y soltarla en `dst`.
-    Solo corre si el checkpoint tiene observation.environment_state de 4 valores y hay permiso de movimiento. El ACT genérico
+    Solo corre si el checkpoint tiene observation.environment_state de 4 valores y el movimiento no está parado. El ACT genérico
     de modeloACT (sin objetivo) se rechaza. Antes de arrancar comprueba que la primera acción no se aleje más de 15° de la
     pose actual. Primera prueba: <= 20 s. NO PROBADO con un checkpoint real (no existe todavía)."""
     from deploy_goal import ENV_STATE_KEY, build_obs, load_policy, step_policy

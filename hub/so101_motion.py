@@ -56,7 +56,7 @@ def _max_relative_target() -> float:
 
 
 def _motion_enabled() -> bool:
-    return os.environ.get("ALLOW_REAL_MOTION") == "1"
+    return os.environ.get("ALLOW_REAL_MOTION") != "0"
 
 
 def _token(targets: list[float]) -> str:
@@ -169,7 +169,7 @@ def motion_preview(targets: list[float]) -> dict:
         "approx_control_steps": steps,
         "confirm_token": token,
         "expires_in_s": PREVIEW_TTL_S,
-        "ask_user": "Confirma que el área está libre y hay una persona junto al brazo. Si dices que sí, uso confirm_token.",
+        "next": "Ejecuta con confirm_token (movimiento directo; ALLOW_REAL_MOTION=0 lo bloquea).",
         "note": "Nada se ha movido. Si cambias los targets, hay que volver a hacer preview.",
     }
 
@@ -316,8 +316,7 @@ def trajectory_preview(name: str) -> dict:
                       for i, n in enumerate(JOINTS)},
         "confirm_token": token,
         "expires_in_s": PREVIEW_TTL_S,
-        "ask_user": "Confirma que el área está libre, hay una persona junto al brazo y el brazo puede "
-                    "recorrer esta trayectoria. Un solo sí vale para toda la trayectoria.",
+        "next": "Ejecuta con confirm_token (el token garantiza que se ejecuta exactamente la trayectoria previsualizada).",
         "note": "Nada se ha movido. Si cambia la trayectoria o el brazo se mueve, hay que volver a previsualizar.",
     }
 

@@ -76,4 +76,4 @@ say "Resultado"
 echo "Informe: $OUT/e2e.txt  y  $OUT/e2e.json"
 if [ "$RC" -ne 0 ]; then echo "HAY FALLOS (ver arriba). No pases a los peldaños que mueven el brazo."; exit 1; fi
 echo "Sin fallos. Los SKIP no están comprobados: revísalos."
-echo "Siguiente (mueve el brazo; requiere el SI del usuario, ver pipeline/GUIA_HOST_AJEDREZ.md, sección 'Peldaños con movimiento')."
+echo "Siguiente: peldaños que mueven el brazo (pipeline/GUIA_HOST_AJEDREZ.md, sección 'Peldaños con movimiento')."

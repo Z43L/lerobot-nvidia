@@ -21,7 +21,7 @@ real/record.sh 30 cube_demos "Pick up a cube and place in the bin"
 # 4. Fine-tune de SmolVLA (GPU de Apple, mps)
 real/train.sh cube_demos 20000 mps
 
-# 5. Probar el checkpoint en el brazo real (con el área libre y el botón de parada a mano)
+# 5. Probar el checkpoint en el brazo real 
 real/rollout.sh real/checkpoints/<carpeta>/checkpoints/last/pretrained_model "Pick up a cube and place in the bin" 60
 ```
 
@@ -32,10 +32,9 @@ SO101_BACKEND=real ALLOW_REAL_MOTION=1 ./.venv312/bin/python sim/mcp_server.py
 Por defecto (`SO101_BACKEND=sim`) el MCP usa la simulación.
 En real, `move_joints` y `get_scene` usan grados en las 5 articulaciones y 0..100 en la pinza (igual que LeRobot con `use_degrees=True` y que el checkpoint). En sim, radianes; la conversión está en `sim/vla_policy.py`.
 
-## Seguridad
-- `SO101_MAX_RELATIVE_TARGET` (por defecto 5) limita cuánto puede moverse el brazo en cada paso.
-- `run_skill` en real no arranca sin `ALLOW_REAL_MOTION=1`.
-- Ten siempre una forma de cortar la alimentación del brazo a mano.
+## Límites
+- `SO101_MAX_RELATIVE_TARGET` (por defecto 2) limita cuánto puede moverse el brazo en cada paso.
+- Movimiento directo, sin confirmación. `ALLOW_REAL_MOTION=0` lo para todo (`SO101_REQUIRE_CONFIRM=1` vuelve a pedir SI en los scripts).
 
 ## Estado de verificación
 - Verificado sin hardware: `check_hardware.py` detecta que no hay puertos, cámaras ni calibración, y falla sin mover nada.

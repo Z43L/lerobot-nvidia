@@ -13,7 +13,7 @@ Comandos (desde la raíz del proyecto):
   ./.venv312/bin/python hub/board_touch_calib.py selftest
 
   # Real (SIN mover el brazo): lee las articulaciones del seguidor y las anota para una casilla.
-  # Antes: pon la punta tocando la casilla (lo mueves tú con el líder, con SI y ALLOW_REAL_MOTION=1).
+  # Antes: pon la punta tocando la casilla (lo mueves tú con el líder).
   source real/env.local.sh
   ./.venv312/bin/python hub/board_touch_calib.py read --square a1 --touches hub/touches_real.json
 

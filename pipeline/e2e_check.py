@@ -14,7 +14,7 @@ el informe final lo cuenta aparte. Código de salida 0 solo si no hay FAIL.
   3 Mapa         calibración del tablero, origen, cinemática: ¿llega a las 64 casillas? (sin mover)
   models ACT       ¿cada checkpoint carga y predice en este dispositivo? error offline contra el dataset
   4 Ensayo       partida en dry por la CLI y por el MCP (sin mover)
-Los peldaños 5-8 (mueven el brazo) NO están aquí: necesitan el SI del usuario y real/authorize_motion.sh.
+Los peldaños 5-8 (mueven el brazo) NO están aquí: esta prueba nunca mueve el brazo (fuerza ALLOW_REAL_MOTION=0).
 """
 
 from __future__ import annotations
@@ -38,11 +38,10 @@ for sub in ("hub", "sim", "vision", "real"):
 import chess_config as CFG  # noqa: E402  (carga real/env.local.sh)
 
 RESULTS: list[dict] = []
-# Fuerza el gate de movimiento en cualquier política: si motion_permission() deja moverse por defecto
-# (CHESS_REQUIRE_PERMISSION distinto de 1), este script lo vuelve a exigir. Sin ALLOW_REAL_MOTION, nada se mueve.
-SAFE_ENV = {"CHESS_REQUIRE_PERMISSION": "1", "CHESS_ARM": "none"}
+# Este script es una prueba SIN movimiento: activa la parada (ALLOW_REAL_MOTION=0) y el modo con permiso en todo lo que
+# lanza, sea cual sea la política del repo. Si aun así el gate dejara mover, la prueba del gate no se lanza.
+SAFE_ENV = {"ALLOW_REAL_MOTION": "0", "CHESS_REQUIRE_PERMISSION": "1", "CHESS_ARM": "none"}
 os.environ.update(SAFE_ENV)
-os.environ.pop("ALLOW_REAL_MOTION", None)
 
 
 def record(stage: int, name: str, status: str, detail: str = "", criterion: str = "") -> str:
@@ -53,8 +52,7 @@ def record(stage: int, name: str, status: str, detail: str = "", criterion: str 
 
 
 def run(cmd: list[str], env_extra: dict | None = None, timeout: int = 180) -> subprocess.CompletedProcess:
-    env = dict(os.environ, **(env_extra or {}), **SAFE_ENV)
-    env.pop("ALLOW_REAL_MOTION", None)  # este script nunca debe poder mover el brazo
+    env = dict(os.environ, **(env_extra or {}), **SAFE_ENV)  # este script nunca debe poder mover el brazo
     return subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, env=env, timeout=timeout)
 
 
@@ -83,21 +81,6 @@ def stage0():
            "8 pruebas OK")
     record(0, "límite de paso", "PASS" if CFG.STEP_DEG <= 2.0 else "FAIL",
            f"{CFG.STEP_DEG}°/paso", "<= 2 (AGENTS.md)")
-    if _file_sets_motion():
-        record(0, "ALLOW_REAL_MOTION fuera de ficheros", "SKIP",
-               "un fichero lo activa: el MCP puede mover el brazo sin confirmación (válido solo si es la política decidida)",
-               "ninguno lo fija")
-    else:
-        record(0, "ALLOW_REAL_MOTION fuera de ficheros", "PASS", "ningún fichero de configuración lo activa", "ninguno lo fija")
-
-
-def _file_sets_motion() -> bool:
-    for f in (ROOT / ".mcp.json", ROOT / "real" / "env.sh", ROOT / "real" / "env.local.sh"):
-        if f.exists():
-            for line in f.read_text().splitlines():
-                if "ALLOW_REAL_MOTION" in line and ("1" in line.split("ALLOW_REAL_MOTION", 1)[1][:6]) and not line.lstrip().startswith("#"):
-                    return True
-    return False
 
 
 # ------------------------------------------------------------------ 1 hardware
@@ -286,7 +269,7 @@ async def _mcp_check(tmp: Path):
     except ImportError:
         record(4, "MCP so101-chess", "SKIP", "falta mcp", "")
         return
-    env = {k: v for k, v in os.environ.items() if k != "ALLOW_REAL_MOTION"}
+    env = dict(os.environ)
     env.update(SAFE_ENV)
     env.update(CHESS_ARM="none", CHESS_GAME_FILE=str(tmp / "m.json"), CHESS_REAL_PLAN_LOG=str(tmp / "mp.json"))
     try:
@@ -311,7 +294,7 @@ async def _mcp_check(tmp: Path):
                 record(4, "MCP: rechaza jugada ilegal", "PASS" if ill.get("status") == "refused" else "FAIL", f"{ill.get('status')}", "refused")
                 ok_gate, why_gate = CFG.motion_permission()
                 if ok_gate:  # el gate permitiría mover: NO se lanza la prueba (movería el brazo de verdad)
-                    record(4, "MCP: GATE de seguridad sin permiso", "FAIL",
+                    record(4, "MCP: la verificación no mueve el brazo (parada forzada)", "FAIL",
                            f"motion_permission() deja mover incluso con CHESS_REQUIRE_PERMISSION=1 y sin ALLOW_REAL_MOTION ({why_gate}); prueba NO lanzada",
                            "blocked (nunca intenta mover)")
                     await call("chess_commit", uci="e2e4")
@@ -319,8 +302,8 @@ async def _mcp_check(tmp: Path):
                     record(4, "MCP: registrar tras verificar", "PASS" if isinstance(st, str) and "Historial: e4" in st else "FAIL", "historial con e4", "e4 registrada")
                     return
                 blk = await call("chess_move", uci="e2e4", executor="ik")
-                record(4, "MCP: GATE de seguridad sin permiso", "PASS" if blk.get("status") == "blocked" else "FAIL",
-                       f"{blk.get('status')}: {str(blk.get('message', ''))[:60]}", "blocked (nunca intenta mover)")
+                record(4, "MCP: la verificación no mueve el brazo (parada forzada)", "PASS" if blk.get("status") == "blocked" else "FAIL",
+                       f"{blk.get('status')}: {str(blk.get('message', ''))[:60]}", "blocked con ALLOW_REAL_MOTION=0")
                 await call("chess_commit", uci="e2e4")
                 st = await call("chess_state")
                 record(4, "MCP: registrar tras verificar", "PASS" if isinstance(st, str) and "Historial: e4" in st else "FAIL", "historial con e4", "e4 registrada")

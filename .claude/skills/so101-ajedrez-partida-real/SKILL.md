@@ -13,7 +13,7 @@ Orquesta `so101-ajedrez-camaras-yolo` (ver), `so101-ajedrez-brazo-retorno` (move
 source real/env.local.sh          # puertos y cámaras del puesto (ALLOW_REAL_MOTION=1 ya incluido)
 export SO101_MAX_RELATIVE_TARGET=2 CHESS_WRIST_CAM=2
 ```
-Sin permiso con caducidad: `motion_permission()` devuelve siempre `True` salvo que se exporte `CHESS_REQUIRE_PERMISSION=1`. Siguen activos los límites mecánicos del código (rango calibrado, ≤2° por paso, parada por atasco).
+Movimiento directo: `motion_permission()` devuelve `True` salvo con `ALLOW_REAL_MOTION=0` (parada, también vía `arm_stop`) o `CHESS_REQUIRE_PERMISSION=1`. Siguen activos los límites mecánicos del código (rango calibrado, ≤2° por paso, parada por atasco).
 
 ## Orientación (etiquetas estándar del sistema)
 

@@ -8,14 +8,14 @@ tambien `--grasp scripted` (IK baja, cierra la pinza hasta que se detiene, sube)
 Secuencia de cada coger-y-soltar (cada jugada termina en el ORIGEN, hub/chess_home.json):
   origen -> encima(src) -> [ACT | bajar+cerrar] -> subir -> encima(dst) -> bajar -> abrir -> subir -> ORIGEN
 
-Seguridad (AGENTS.md): sin ALLOW_REAL_MOTION=1 y sin el permiso con caducidad real/.motion_ok (que crea el USUARIO con
-real/authorize_motion.sh) no se mueve nada. Pasos de como mucho 2 grados por articulacion, torque encendido al parar.
-Para en el primer fallo (no vuelve solo): corte de alimentacion a mano si algo va mal.
+Movimiento directo (politica del 21-nov). ALLOW_REAL_MOTION=0 lo para todo; CHESS_REQUIRE_PERMISSION=1 vuelve a exigir el
+permiso con caducidad. Limites mecanicos siempre: pasos de como mucho 2 grados por articulacion, torque encendido al parar.
+Para en el primer fallo (no vuelve solo).
 
 Sin hardware (no mueve nada):
   ./.venv312/bin/python hub/chess_ik_exec.py plan e2e4                 # waypoints, limites, pasos, tiempo
   ./.venv312/bin/python hub/chess_ik_exec.py act-offline --square e2   # que haria el ACT desde encima de la casilla
-Con el brazo (solo con SI del usuario):
+Con el brazo:
   ./.venv312/bin/python hub/chess_ik_exec.py run e2e4 --grasp act --seconds 8
 """
 
@@ -448,7 +448,7 @@ class IKExecutor:
             raise RuntimeError(f"el brazo NO esta en el origen (diferencias {np.round(far, 1).tolist()} grados, maximo 8): "
                                "colocalo en la pose guardada (hub/chess_home.json) antes de empezar. No se mueve.")
         if first:
-            print("Brazo en el origen. Torque encendido: SUELTA el brazo y apartate de su zona. Empiezo en 5 s (Ctrl+C o corte de alimentacion para parar).", flush=True)
+            print("Brazo en el origen. Torque encendido: SUELTA el brazo y apartate de su zona. Empiezo en 5 s (Ctrl+C para parar).", flush=True)
             time.sleep(5)
 
         def q6(w, grip=None):
@@ -466,7 +466,7 @@ class IKExecutor:
 
         arm.goto(q6(wp[1], op))                     # encima del origen, pinza abierta
         if self.grasp == "act":
-            why_not = act_grip_problem(self.checkpoint)
+            why_not = act_grip_problem(self.checkpoint, op)   # la apertura REAL de esta pieza, no GRIP_OPEN
             if why_not:
                 raise RuntimeError(f"No se usa el ACT: {why_not}")
             # Ventana del ACT de 30k confinada a la caja encima->agarre (+-ENVELOPE_MARGIN). Luego la IK termina de bajar.

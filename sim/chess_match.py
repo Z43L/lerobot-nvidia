@@ -38,11 +38,12 @@ def moving_executor() -> bool:
 def gate_real_motion(san: str) -> bool:
     if not moving_executor():
         return True
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        print("Bloqueado: mover el brazo real necesita ALLOW_REAL_MOTION=1.")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        print("Bloqueado: mover el brazo real está parado con ALLOW_REAL_MOTION=0.")
         return False
-    print(f"\n*** El robot va a MOVER el brazo real: {san} ***")
-    print("Comprueba: área libre, persona junto al brazo, corte de alimentación a mano.")
+    print(f"\n*** El robot mueve el brazo real: {san} ***")
+    if os.environ.get("SO101_REQUIRE_CONFIRM") != "1":  # movimiento directo (política del 21-nov)
+        return True
     return input("Escribe SI para continuar: ").strip() == "SI"
 
 

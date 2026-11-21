@@ -78,16 +78,18 @@ MOTION_FILE = ROOT / "real" / ".motion_ok"
 
 
 def motion_permission() -> tuple[bool, str]:
-    """Gate único de movimiento: ALLOW_REAL_MOTION=1 (lo pone el usuario) + permiso con caducidad que crea el usuario
-    con real/authorize_motion.sh. Lo usan el MCP y el ejecutor IK; antes cada uno tenía su copia.
-    Por defecto (21-nov, decisión del usuario) el movimiento es directo: el permiso solo se exige con CHESS_REQUIRE_PERMISSION=1."""
+    """Gate único de movimiento (MCP y ejecutor IK). Política del 21-nov (decisión del usuario): movimiento directo.
+      - ALLOW_REAL_MOTION=0  -> parada: nada se mueve (interruptor de emergencia por software).
+      - CHESS_REQUIRE_PERMISSION=1 -> vuelve el modo con permiso: ALLOW_REAL_MOTION=1 + real/authorize_motion.sh.
+    Los límites mecánicos (rango, grados por paso, atasco) están en el código y no dependen de esto."""
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        return False, "parada activada (ALLOW_REAL_MOTION=0)."
     if os.environ.get("CHESS_REQUIRE_PERMISSION") != "1":
         return True, "movimiento directo (sin permiso)"
     if os.environ.get("ALLOW_REAL_MOTION") != "1":
         return False, "ALLOW_REAL_MOTION=1 no está puesto en el entorno."
     if not MOTION_FILE.exists():
-        return False, ("Sin permiso del usuario. Debe ejecutar en su terminal: real/authorize_motion.sh <minutos> "
-                       "(tras confirmar área libre, persona junto al brazo y corte de alimentación a mano).")
+        return False, "Modo con permiso (CHESS_REQUIRE_PERMISSION=1): falta real/authorize_motion.sh <minutos>."
     try:
         expiry = float(MOTION_FILE.read_text().strip())
     except ValueError:

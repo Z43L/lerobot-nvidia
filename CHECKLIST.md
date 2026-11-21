@@ -1,9 +1,9 @@
 # Checklist del hackathon (SO-101 + ACT + visión + Claude)
 
 Sigue el orden. Marca cada casilla al completarla. Si una etapa falla, **para** y resuelvela antes de avanzar.
-Las reglas de seguridad de `AGENTS.md` mandan siempre.
+Las reglas de `AGENTS.md` mandan siempre.
 
-Leyenda: 🔒 mueve el brazo real (necesita `ALLOW_REAL_MOTION=1` y el `SI` del usuario) · 🧠 entrena · ⚠️ bloqueado / no probado
+Leyenda: 🔒 mueve el brazo real (movimiento directo, sin confirmación; `ALLOW_REAL_MOTION=0` lo para todo) · 🧠 entrena · ⚠️ bloqueado / no probado
 
 ---
 
@@ -33,15 +33,14 @@ Leyenda: 🔒 mueve el brazo real (necesita `ALLOW_REAL_MOTION=1` y el `SI` del 
 - [ ] Comprobar la resolución: las cámaras deben abrir a 320x240. Si no, **para**: hay que cambiar la resolución en `real/record_goal.py` y en `real/rollout.sh` antes de grabar.
 - [ ] Comprobar en grados: mover una articulación **a mano** (sin 🔒) y leer las posiciones. Deben salir en grados (shoulder_lift puede pasar de 100) y la pinza en 0..100.
 
-## 2. Primera prueba segura 🔒
+## 2. Primera prueba 🔒
 
-- [ ] Área libre, persona junto al brazo, corte de alimentación a mano.
-- [ ] Pedir al usuario el `SI` y ejecutar:
+- [ ] Ejecutar:
   ```bash
   source real/env.local.sh
   ALLOW_REAL_MOTION=1 ./.venv312/bin/python real/record_goal.py --name test1 --episodes 1
   ```
-- [ ] Revisar el episodio: ¿el brazo se mueve suave, sin golpes ni saltos? Si no: corte de alimentación.
+- [ ] Revisar el episodio: ¿el brazo se mueve suave, sin golpes ni saltos? Si no: `ALLOW_REAL_MOTION=0` (o Ctrl+C) y revisar.
 - [ ] `./.venv312/bin/python pipeline/vla_pipeline.py validate --backend real --run test1 --policy act --min-episodes 1` → **OK**.
 
 ## 3. Grabación real 🔒
@@ -76,7 +75,7 @@ Skill: `so101-calibracion-tablero`. Sin esto, el objetivo `x,y` que pases a ACT 
 - [ ] Medir el lado de la casilla real (no asumir 3 cm) y anotarlo: ______ m.
 - [ ] Comprobar que a1, h1 y a6 llegan a 2 cm de altura (**no usar la fila 8**: no llega con la pinza vertical).
 - [ ] Verificar la cinemática de sim frente al brazo real: `hub/board_touch_calib.py fk --deg ...` con el brazo en reposo. Si no coincide: **para**.
-- [ ] 🔒 Tocar con el líder a1, h1, a6 y comprobación h6 (con `SI` y `ALLOW_REAL_MOTION=1`). Tras cada toque, leer con `hub/board_touch_calib.py read --square <casilla> --touches hub/touches_real.json` (no mueve el brazo).
+- [ ] 🔒 Tocar con el líder a1, h1, a6 y comprobación h6 . Tras cada toque, leer con `hub/board_touch_calib.py read --square <casilla> --touches hub/touches_real.json` (no mueve el brazo).
 - [ ] Calcular: `hub/board_touch_calib.py fit --touches hub/touches_real.json --out hub/chess_board_real.json`. Solo escribe si el error de h6 es < 5 mm; si no, repetir las medidas.
 - [ ] Probar `square_xy` con 3 casillas al azar.
 - [ ] Si se cambia el lado de la casilla, actualizar la sim (`SQ` en `sim/chess_sim.py`) antes de grabar datos de sim.
@@ -90,11 +89,11 @@ Skill: `so101-calibracion-tablero`. Sin esto, el objetivo `x,y` que pases a ACT 
 `real/deploy_goal.py` existe y se ha probado solo en `--dry-run` (sin brazo). El bucle con el brazo **no** se ha ejecutado todavía.
 
 - [ ] Comprobación sin brazo: `./.venv312/bin/python real/deploy_goal.py --checkpoint <ruta> --goal 0.19,0.04 --dry-run` → **checkpoint OK**.
-- [ ] Prueba corta 🔒 (15–20 s, área libre, persona junto al brazo, `SO101_MAX_RELATIVE_TARGET=2`):
+- [ ] Prueba corta 🔒 (15–20 s, `SO101_MAX_RELATIVE_TARGET=2`):
   ```bash
   ALLOW_REAL_MOTION=1 ./.venv312/bin/python pipeline/vla_pipeline.py deploy --policy act --checkpoint <ruta> --goal 0.19,0.04 --seconds 20 --run demos
   ```
-- [ ] Si la prueba corta falla o el brazo se comporta raro: corte de alimentación y **plan B** (§8). No improvises con `lerobot-rollout`: no envía el objetivo.
+- [ ] Si la prueba corta falla o el brazo se comporta raro: `ALLOW_REAL_MOTION=0` y **plan B** (§8). No improvises con `lerobot-rollout`: no envía el objetivo.
 
 ## 7. Evaluación
 

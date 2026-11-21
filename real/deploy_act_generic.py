@@ -5,7 +5,7 @@ ver cómo se mueve el brazo. NO sirve para jugar una jugada concreta de ajedrez 
 real/record_goal.py + real/deploy_goal.py).
 
 Seguridad (AGENTS.md):
-  - Mueve el brazo REAL: exige ALLOW_REAL_MOTION=1 y que escribas SI. Área libre, persona junto al brazo, corte a mano.
+  - Mueve el brazo REAL directamente (ALLOW_REAL_MOTION=0 lo para; SO101_REQUIRE_CONFIRM=1 pide SI antes).
   - SO101_MAX_RELATIVE_TARGET=2 por defecto (grados por paso).
   - Guarda de arranque: si la primera acción predicha se aleja más de --max-first-jump grados de la posición actual en
     alguna articulación, NO arranca. (El test offline del checkpoint dio un error de 14,5 grados de media en el primer paso y
@@ -97,8 +97,9 @@ def dry_run(checkpoint: Path, device: str) -> int:
 
 
 def confirm_motion() -> bool:
+    if os.environ.get("SO101_REQUIRE_CONFIRM") != "1":  # movimiento directo (política del 21-nov); SO101_REQUIRE_CONFIRM=1 pide SI
+        return True
     print("\n*** El ACT va a MOVER el brazo REAL. ***")
-    print("Comprueba: área libre, persona junto al brazo, corte de alimentación a mano.")
     return input("Escribe SI para continuar: ").strip() == "SI"
 
 
@@ -124,8 +125,8 @@ def real_run(checkpoint: Path, seconds: float, device: str, max_first_jump: floa
         max_relative_target=float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "2")),
     ))
     motors = [k for k in robot.action_features if k.endswith(".pos")]
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        print("Bloqueado: desplegar en el brazo necesita ALLOW_REAL_MOTION=1.")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0":
+        print("Bloqueado: desplegar en el brazo está parado con ALLOW_REAL_MOTION=0.")
         return 3
     if not confirm_motion():
         print("Cancelado.")

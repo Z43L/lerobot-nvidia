@@ -207,7 +207,6 @@ def calibration_plan(role: str = "follower") -> dict:
         "status": "manual",
         "command": cmd,
         "steps": [
-            "Confirma que el brazo está sin alimentar o con el área libre y una persona junto al robot.",
             "Ejecuta el comando en tu terminal (no lo lanza Claude).",
             "Sigue las instrucciones: mueve cada articulación por todo su rango y pulsa Enter.",
             "Al terminar, vuelve a Claude y pide read_positions para comprobar la lectura.",

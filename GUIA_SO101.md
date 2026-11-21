@@ -76,20 +76,19 @@ Los checkpoints van a `real/checkpoints/`. En Mac, el fine-tune completo es lent
 real/rollout.sh real/checkpoints/<carpeta>/checkpoints/last/pretrained_model \
   "Pick up a cube and place in the bin" 60
 ```
-Requisitos: área libre, persona junto al brazo y corte de alimentación a mano.
+El movimiento es directo (`ALLOW_REAL_MOTION=0` lo para).
 
 ### 4.6. Desde Claude con el brazo real
-Solo si el usuario lo activa explícitamente:
+El movimiento es directo:
 ```bash
 SO101_BACKEND=real ALLOW_REAL_MOTION=1 ./.venv312/bin/python sim/mcp_server.py
 ```
-Sin `ALLOW_REAL_MOTION=1`, `run_skill` queda bloqueado en real.
+Con `ALLOW_REAL_MOTION=0`, `run_skill` queda bloqueado en real.
 
-## 5. Seguridad
+## 5. Límites del brazo
 
-- `SO101_MAX_RELATIVE_TARGET` (por defecto 5) limita cuánto se mueve el brazo en cada paso. Bájalo si se mueve de forma brusca.
-- Nunca ejecutes un checkpoint en el brazo sin que alguien esté junto al robot.
-- Las skills de Claude están configuradas para pedir confirmación antes de mover el brazo real.
+- `SO101_MAX_RELATIVE_TARGET` (por defecto 2) limita cuánto se mueve el brazo en cada paso. Bájalo si se mueve de forma brusca.
+- Movimiento directo, sin confirmación. `ALLOW_REAL_MOTION=0` lo para todo (y `arm_stop` en el MCP de ajedrez).
 
 ## 6. Estado actual (qué funciona y qué no)
 
@@ -138,7 +137,6 @@ Sin `ALLOW_REAL_MOTION=1`, `run_skill` queda bloqueado en real.
 - [ ] Guardar la ruta del checkpoint en `real/checkpoints/`.
 
 **Ejecución**
-- [ ] Área libre, persona junto al brazo, corte de alimentación a mano.
 - [ ] Bajar `SO101_MAX_RELATIVE_TARGET` (p. ej. 2–3) para la primera prueba.
 - [ ] `real/rollout.sh <checkpoint> "Pick up a cube and place in the bin" 60`.
 
@@ -159,11 +157,10 @@ Claude orquesta la torre a través del MCP. Hay **un VLA por color de disco** (r
 En `.mcp.json`, `so101-sim-hanoi` lleva `SO101_HANOI_VLA_<COLOR>` con la carpeta `.../checkpoints/last/pretrained_model` de cada color.
 
 ### 9.2 Brazo real
-Seguridad primero:
-- `ALLOW_REAL_MOTION=1` es obligatorio para cualquier movimiento real (`move_joints`, `home`, `hanoi_pick_place`). Sin él, el MCP responde `blocked`.
+Límites:
+- El movimiento real es directo (`move_joints`, `home`, `hanoi_pick_place`). Con `ALLOW_REAL_MOTION=0` el MCP responde `blocked`.
 - `SO101_MAX_RELATIVE_TARGET=2` en `.mcp.json` (ya puesto en `so101-real-hanoi`).
 - Cámara de mesa obligatoria para Hanoi: `SO101_TABLE_CAM=<índice>` en `real/env.local.sh`.
-- Área libre, persona junto al brazo y corte de alimentación a mano.
 
 Flujo en el puesto:
 1. `source real/env.local.sh && ./.venv312/bin/python real/check_hardware.py` → todo en OK.

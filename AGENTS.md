@@ -58,7 +58,7 @@ Durante el evento, sigue `CHECKLIST.md` en orden. Antes de cualquier acción, mi
 - Despliegue con ACT: `real/deploy_goal.py` (o `pipeline/vla_pipeline.py deploy --policy act --goal x,y`). Envía el objetivo en cada paso. No improvises con `lerobot-rollout`, que no envía el objetivo. Si falla, plan B de `CHECKLIST.md` §8.
 
 **Reglas que no cambian en el evento:**
-- **Movimiento real:** se ejecuta directamente (`ALLOW_REAL_MOTION=1` ya está en el entorno). Sin pedir `SI` ni confirmar área libre.
+- **Movimiento real:** se ejecuta directamente. Sin pedir `SI` ni confirmar área libre. Parada: `ALLOW_REAL_MOTION=0` en el entorno, o `arm_stop` en el MCP de ajedrez (`arm_resume` reanuda). Opcional: `SO101_REQUIRE_CONFIRM=1` vuelve a pedir SI en los scripts y `CHESS_REQUIRE_PERMISSION=1` el permiso con caducidad en el ajedrez.
 - **Velocidad:** `SO101_MAX_RELATIVE_TARGET=2` es el valor por defecto; se puede ajustar según haga falta.
 - **Cambios de luz:** no cambies la iluminación durante una grabación. Si cambia, para y graba de nuevo.
 - **Datos:** no borres `real/datasets/` ni `pipeline/runs/` sin pedirlo. Son lo que se entrega.

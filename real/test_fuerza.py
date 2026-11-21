@@ -2,7 +2,7 @@
 
 Registra posicion, carga y corriente en cada tick. Nunca sobrepasa la pose inicial hacia el tope (la vuelta termina en ella) ni
 el rango de la calibracion menos 3 grados. 1 grado por tick a 10 Hz. Para si no avanza en 15 ticks, si la carga >= 800/1000 o si
-la temperatura >= 55 C. Sin permiso (real/authorize_motion.sh, lo crea el USUARIO) no mueve nada.
+la temperatura >= 55 C. Se para con ALLOW_REAL_MOTION=0 o al llegar al tope de tiempo (TEST_FUERZA_MAX_S).
 
   ./.venv312/bin/python real/test_fuerza.py                      # torque tal como esta (Torque_Limit actual)
   ./.venv312/bin/python real/test_fuerza.py --torque-limit 800   # sube Torque_Limit (RAM, se pierde al apagar) solo para la prueba
@@ -27,7 +27,16 @@ ORDER = ["wrist_flex", "elbow_flex", "shoulder_lift"]
 HZ, STEP, OUT_DEG, MARGIN = 10.0, 1.0, 7.0, 3.0
 
 
+_DEADLINE = time.time() + float(os.environ.get("TEST_FUERZA_MAX_S", "120"))  # tope de tiempo de la prueba
+
+
 def permiso() -> bool:
+    """Sigue mientras no se active la parada (ALLOW_REAL_MOTION=0) y no se pase el tope de tiempo. Con
+    CHESS_REQUIRE_PERMISSION=1 exige además el permiso con caducidad de real/authorize_motion.sh."""
+    if os.environ.get("ALLOW_REAL_MOTION") == "0" or time.time() > _DEADLINE:
+        return False
+    if os.environ.get("CHESS_REQUIRE_PERMISSION") != "1":
+        return True
     try:
         return time.time() < float(MOTION_FILE.read_text().strip())
     except Exception:  # noqa: BLE001
@@ -40,8 +49,8 @@ def main() -> int:
     ap.add_argument("--torque-limit", type=int, default=None)
     ap.add_argument("--breakaway", type=float, default=0.0, help="adelanto extra maximo (grados) que crece 0.4/tick si no avanza. SUBE max_relative_target de LeRobot a 1+este valor")
     a = ap.parse_args()
-    if os.environ.get("ALLOW_REAL_MOTION") != "1" or not permiso():
-        print("Bloqueado: hace falta ALLOW_REAL_MOTION=1 y el permiso vigente (real/authorize_motion.sh).")
+    if os.environ.get("ALLOW_REAL_MOTION") == "0" or not permiso():
+        print("Bloqueado: ALLOW_REAL_MOTION=0 (parada activada), tope de tiempo o falta el permiso pedido con CHESS_REQUIRE_PERMISSION=1.")
         return 3
     from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
 

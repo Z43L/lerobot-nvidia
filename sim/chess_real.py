@@ -136,7 +136,7 @@ class ACTExecutor:
     def pick_place(self, label, piece_type, src_xy, dst_xy) -> dict:
         problems = self.preflight()
         raise RuntimeError("El ejecutor ACT todavía no mueve el brazo. " + ("; ".join(problems) if problems else
-                           "Falta la prueba corta con SI del usuario (real/deploy_goal.py)."))
+                           "Falta la prueba corta en el brazo (real/deploy_goal.py)."))
 
 
 def make_executor(name: str | None = None):
