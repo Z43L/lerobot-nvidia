@@ -1,0 +1,6 @@
+Plan propuesto
+
+Medir mejor el checkpoint actual (sin entrenar): --samples 300 en test_act.py, repartidas en 12 episodios. Sirve de línea base antes de reentrenar.
+Reentrenar con más pasos y batch mayor: batch 8, 10 000 pasos (unas 80 000 muestras, cerca de 1,6 pasadas). Con el batch 1 actual, una pasada completa serían 51 052 pasos, unas 4 horas a 3,5 pasos/s.
+Medir el tiempo real antes de lanzarlo: un benchmark de unos 20 pasos con batch 8 a 360x640. La referencia de AGENTS.md (0,9 s/paso) es a 240x320, así que puede ser más lento. Con ese dato calculo el tiempo total.
+Repetir la suite de pruebas con el nuevo checkpoint. Solo si pasa el umbral (error del primer paso < 5° y ≤ 2 % fuera de rango) tiene sentido probarlo en simulación y después en el brazo.
