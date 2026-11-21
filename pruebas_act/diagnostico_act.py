@@ -17,6 +17,8 @@ from test_act import to_uint8  # noqa: E402
 from lerobot.datasets.lerobot_dataset import LeRobotDataset  # noqa: E402
 
 m = ACTOffline()
+if DATASET_ROOT is None:
+    raise SystemExit("Falta ACT_DATASET_ROOT: ruta del dataset local de SenseCraft (ya no hay una ruta de usuario fija).")
 ds = LeRobotDataset(DATASET_REPO, root=DATASET_ROOT, video_backend="pyav")
 r = 5000
 s = ds[r]

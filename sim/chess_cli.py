@@ -12,8 +12,13 @@ escena desde ese FEN, así que el orden de las llamadas es lo único que importa
 
 Ver la partida: SO101_VIEWER=1 ./.venv312/bin/mjpython sim/chess_cli.py ... (ventana de MuJoCo en vivo).
 
-Backend: CHESS_BACKEND=sim (por defecto). CHESS_BACKEND=real queda reservado para el brazo real y todavía no existe
-(ver sim/chess_real.py y la skill so101-ajedrez-mover).
+  ./.venv312/bin/python sim/chess_cli.py see --camera N|--image f.jpg   # qué ve YOLO y en qué difiere de la partida
+  ./.venv312/bin/python sim/chess_cli.py human-seen --camera N          # deduce la jugada del humano con la cámara
+  ./.venv312/bin/python sim/chess_cli.py commit <uci>                   # registra una jugada YA hecha, sin mover nada
+  ./.venv312/bin/python sim/chess_cli.py robot --verify-camera N        # el robot juega y la cámara verifica
+
+Backend: CHESS_BACKEND=sim (por defecto) o real. En real el ejecutor sale de CHESS_REAL_EXECUTOR (dry | ik | ik-scripted
+| act, ver sim/chess_real.py). El humano mueve a mano: en real sus jugadas solo se registran, nunca las ejecuta el brazo.
 """
 
 from __future__ import annotations
@@ -28,7 +33,8 @@ from pathlib import Path
 import chess
 
 HERE = Path(__file__).resolve().parent
-GAME = HERE.parent / "hub" / "chess_game.json"
+ROOT = HERE.parent
+GAME = Path(os.environ.get("CHESS_GAME_FILE", ROOT / "hub" / "chess_game.json"))
 VALUE = {chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330, chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 0}
 
 
@@ -106,12 +112,19 @@ def parse_move(board: chess.Board, text: str) -> chess.Move:
     return m
 
 
-def run_on_backend(board: chess.Board, move: chess.Move) -> dict:
-    backend = os.environ.get("CHESS_BACKEND", "sim")
-    if backend == "real":
-        raise SystemExit("CHESS_BACKEND=real todavía no está implementado: ver sim/chess_real.py y la skill so101-ajedrez-mover.")
-    if backend != "sim":
-        raise SystemExit(f"Backend desconocido: {backend}")
+def backend_name() -> str:
+    name = os.environ.get("CHESS_BACKEND", "sim").lower()
+    if name not in ("sim", "real"):
+        raise SystemExit(f"Backend desconocido: {name}")
+    return name
+
+
+def run_on_backend(board: chess.Board, move: chess.Move, verify=None) -> dict:
+    if backend_name() == "real":
+        sys.path.insert(0, str(HERE))
+        from chess_real import RealChessBackend
+
+        return RealChessBackend(verify=verify).execute(move, board)
     sys.path.insert(0, str(HERE))
     os.environ.setdefault("SO101_GRASP", "attach")
     from chess_sim import ChessSim
@@ -122,9 +135,53 @@ def run_on_backend(board: chess.Board, move: chess.Move) -> dict:
     return sim.execute(move, board)
 
 
+def _vision_modules():
+    sys.path.insert(0, str(ROOT / "vision"))
+    sys.path.insert(0, str(ROOT / "hub"))
+    import chess_config
+
+    os.environ.setdefault("CHESS_BOARD_GEOMETRY", str(chess_config.BOARD_GEOMETRY))
+    import chess_vision
+
+    return chess_vision
+
+
+def _read_seen(image=None, camera=None):
+    """(chess_vision, imagen BGR, casillas vistas) desde una foto o una cámara OpenCV."""
+    import cv2
+
+    cvm = _vision_modules()
+    if image:
+        img = cv2.imread(str(image))
+        if img is None:
+            raise SystemExit(f"No puedo leer la imagen {image}")
+    elif camera is not None:
+        img = cvm.capture(int(camera))
+    else:
+        raise SystemExit("Indica --camera N o --image foto.jpg")
+    vision = cvm.ChessVision()
+    return cvm, img, vision.read_squares(img)
+
+
+def vision_verifier(args):
+    """Verificador de la jugada del robot con la cámara (None si no se indicó cámara ni imagen)."""
+    image, camera = getattr(args, "verify_image", None), getattr(args, "verify_camera", None)
+    if image is None and camera is None:
+        return None
+
+    def verify(move, board_before, board_after):
+        cvm, _, seen = _read_seen(image, camera)
+        ok, problems, warnings = cvm.verify_move(board_before, move, seen)
+        for w in warnings:
+            print("  aviso:", w)
+        return ok, problems
+
+    return verify
+
+
 def cmd_new(args) -> None:
     board = chess.Board()
-    g = {"fen": board.fen(), "history": [], "robot_color": "white" if args.robot_white else "black", "backend": "sim"}
+    g = {"fen": board.fen(), "history": [], "robot_color": "white" if args.robot_white else "black", "backend": backend_name()}
     save_game(g)
     print("Partida nueva. Turno:", "blancas" if board.turn else "negras", "| el robot juega", g["robot_color"])
 
@@ -141,13 +198,18 @@ def cmd_state(args) -> None:
     print("Historial:", " ".join(h["san"] for h in g["history"]) or "(vacío)")
 
 
-def _apply(g: dict, board: chess.Board, move: chess.Move, who: str) -> dict:
+def _apply(g: dict, board: chess.Board, move: chess.Move, who: str, verify=None, execute: bool = True) -> dict:
     san = board.san(move)
-    res = run_on_backend(board, move)
+    if execute:
+        res = run_on_backend(board, move, verify=verify)
+    else:  # jugada ya hecha a mano (humano) o ya verificada: solo se registra
+        after = board.copy()
+        after.push(move)
+        res = {"uci": move.uci(), "steps": [], "board_ok": True, "bad_squares": [], "fen": after.fen()}
     entry = {"ply": len(g["history"]) + 1, "who": who, "uci": move.uci(), "san": san, "board_ok": res["board_ok"],
              "steps": res["steps"], "bad_squares": res["bad_squares"]}
     if not res["board_ok"]:
-        print(f"AVISO: la escena no quedó bien en {res['bad_squares']}. La jugada no se registra.")
+        print(f"AVISO: el tablero no quedó bien: {res['bad_squares']}. La jugada no se registra.")
         return entry
     g["fen"] = res["fen"]
     g["history"].append(entry)
@@ -165,9 +227,44 @@ def cmd_human(args) -> None:
     if robot_turn:
         raise SystemExit("Es turno del robot: usa 'robot'.")
     move = parse_move(board, args.move)
-    entry = _apply(g, board, move, "humano")
+    entry = _apply(g, board, move, "humano", execute=backend_name() == "sim")
     if entry["board_ok"]:
         print("Siguiente: robot" if not chess.Board(g["fen"]).is_game_over() else "Partida terminada.")
+
+
+def cmd_human_seen(args) -> None:
+    """Deduce la jugada del humano con la cámara (o una foto) y la registra. No mueve el brazo."""
+    g = load_game()
+    board = chess.Board(g["fen"])
+    if board.is_game_over():
+        raise SystemExit("La partida ya ha terminado.")
+    robot_turn = (board.turn == chess.WHITE) == (g["robot_color"] == "white")
+    if robot_turn:
+        raise SystemExit("Es turno del robot: usa 'robot'.")
+    cvm, _, seen = _read_seen(getattr(args, "image", None), getattr(args, "camera", None))
+    move, info = cvm.ChessVision.detect_move(cvm.ChessVision.__new__(cvm.ChessVision), board, seen,
+                                             margin=getattr(args, "margin", 0.5))
+    if move is None:
+        raise SystemExit(f"No hay una jugada clara ({info}). Mira la imagen y usa 'human <jugada>'.")
+    print(f"Veo la jugada {board.san(move)} [{move.uci()}] ({info})")
+    _apply(g, board, move, "humano", execute=False)
+
+
+def cmd_see(args) -> None:
+    g = load_game() if GAME.exists() else None
+    cvm, _, seen = _read_seen(args.image, args.camera)
+    print("Piezas vistas:", len(seen), "| FEN visto:", cvm.ChessVision.squares_to_fen(seen))
+    if g:
+        exp = cvm.ChessVision.board_to_squares(chess.Board(g["fen"]))
+        diffs = [s for s in sorted(set(exp) | set(seen)) if exp.get(s) != (seen[s][:2] if s in seen else None)]
+        print("Casillas distintas de la partida:", diffs or "ninguna")
+
+
+def cmd_commit(args) -> None:
+    """Registra una jugada que ya se ejecutó y verificó (el 'registrar' del diagrama). No mueve nada."""
+    g = load_game()
+    board = chess.Board(g["fen"])
+    _apply(g, board, parse_move(board, args.uci), args.who, execute=False)
 
 
 def cmd_robot(args) -> None:
@@ -179,7 +276,9 @@ def cmd_robot(args) -> None:
     if board.turn != robot_color:
         raise SystemExit("No es turno del robot.")
     move = engine_move(board, robot_color, seed=args.seed)
-    _apply(g, board, move, "robot")
+    entry = _apply(g, board, move, "robot", verify=vision_verifier(args))
+    if not entry["board_ok"]:
+        raise SystemExit(2)
     print("Siguiente: humano" if not chess.Board(g["fen"]).is_game_over() else "Partida terminada.")
 
 
@@ -211,7 +310,12 @@ def main(argv=None) -> None:
     p = sub.add_parser("new"); p.add_argument("--robot-white", action="store_true"); p.set_defaults(f=cmd_new)
     sub.add_parser("state").set_defaults(f=cmd_state)
     p = sub.add_parser("human"); p.add_argument("move"); p.set_defaults(f=cmd_human)
-    p = sub.add_parser("robot"); p.add_argument("--seed", type=int, default=None); p.set_defaults(f=cmd_robot)
+    p = sub.add_parser("robot"); p.add_argument("--seed", type=int, default=None)
+    p.add_argument("--verify-camera", type=int, default=None); p.add_argument("--verify-image", default=None); p.set_defaults(f=cmd_robot)
+    p = sub.add_parser("human-seen"); p.add_argument("--camera", type=int, default=None); p.add_argument("--image", default=None)
+    p.add_argument("--margin", type=float, default=0.5); p.set_defaults(f=cmd_human_seen)
+    p = sub.add_parser("see"); p.add_argument("--camera", type=int, default=None); p.add_argument("--image", default=None); p.set_defaults(f=cmd_see)
+    p = sub.add_parser("commit"); p.add_argument("uci"); p.add_argument("--who", default="robot"); p.set_defaults(f=cmd_commit)
     p = sub.add_parser("move"); p.add_argument("uci"); p.set_defaults(f=cmd_move)
     p = sub.add_parser("render"); p.add_argument("file", nargs="?"); p.add_argument("--camera", default="table"); p.set_defaults(f=cmd_render)
     args = ap.parse_args(argv)

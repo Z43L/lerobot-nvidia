@@ -47,6 +47,8 @@ def main() -> int:
     report["load_seconds"] = model.load_seconds
 
     # ---------- Test 1: carga y forward
+    if DATASET_ROOT is None:
+        raise SystemExit("Falta ACT_DATASET_ROOT: ruta del dataset local de SenseCraft (ya no hay una ruta de usuario fija).")
     ds = LeRobotDataset(DATASET_REPO, root=DATASET_ROOT, video_backend="pyav")
     s0 = ds[0]
     rng_imgs = {"front": to_uint8(s0["observation.images.front"].numpy()),

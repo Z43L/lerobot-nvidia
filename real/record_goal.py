@@ -61,7 +61,7 @@ def build_robot_config():
         id=os.environ.get("SO101_FOLLOWER_ID", "so101_follower"),
         cameras=cams,
         use_degrees=True,
-        max_relative_target=float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "5")),
+        max_relative_target=float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "2")),
     )
 
 

@@ -40,11 +40,13 @@ for sub in ("real", "sim", "hub"):
 import board_touch_calib as b  # noqa: E402
 from chess_ik import J4, Kin, steps_between  # noqa: E402
 
-MOTION_FILE = ROOT / "real" / ".motion_ok"
+import chess_config as CFG  # noqa: E402  (única fuente de cámaras, puertos, rutas y límites)
+
+MOTION_FILE = CFG.MOTION_FILE
 HOME_FILE = HUB / "chess_home.json"
-DEFAULT_ACT = ROOT / "act_tray_a100_100k_ckpts" / "checkpoints" / "030000" / "pretrained_model"
-STEP_DEG = float(os.environ.get("CHESS_STEP_DEG", "2.0"))   # AGENTS.md: empezar con 2 grados/paso
-HZ = 30.0
+DEFAULT_ACT = CFG.ACT_GENERIC_CKPT
+STEP_DEG = CFG.STEP_DEG   # tope = SO101_MAX_RELATIVE_TARGET (AGENTS.md: empezar con 2 grados/paso)
+HZ = CFG.HZ
 BIAS_KI = 0.25             # ganancia del sesgo integral (por tick)
 BIAS_MAX = 3.0             # grados: sesgo maximo por articulacion
 GRIP_OPEN = 40.0            # % de apertura de la pinza al acercarse (SIN medir con piezas reales)
@@ -59,17 +61,7 @@ GRASP_DZ = {p: round(h * GRASP_FRACTION, 4) for p, h in PIECE_HEIGHT.items()}  #
 STATE_KEYS = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 
 
-def motion_permission() -> tuple[bool, str]:
-    if os.environ.get("ALLOW_REAL_MOTION") != "1":
-        return False, "ALLOW_REAL_MOTION=1 no esta puesto."
-    if not MOTION_FILE.exists():
-        return False, "Sin permiso del usuario: real/authorize_motion.sh <minutos> (area libre, persona junto al brazo, corte a mano)."
-    try:
-        if time.time() > float(MOTION_FILE.read_text().strip()):
-            return False, "El permiso de movimiento ha caducado."
-    except ValueError:
-        return False, "real/.motion_ok no es valido."
-    return True, "ok"
+motion_permission = CFG.motion_permission  # gate único
 
 
 def load_home() -> np.ndarray | None:
@@ -83,6 +75,16 @@ def load_home() -> np.ndarray | None:
 class Planner:
     def __init__(self, kin: Kin | None = None):
         self.kin = kin or Kin()
+        self.board_bounds = self._board_bounds()
+
+    @staticmethod
+    def _board_bounds() -> tuple[float, float, float]:
+        """(x_min, x_max, |y|_max) de la zona del tablero: casillas calibradas + 1 casilla de margen (antes fijo)."""
+        board = json.loads((HUB / "chess_board_real.json").read_text())
+        pts = list(board["squares"].values())
+        m = float(board.get("square_size_m", 0.03))
+        xs = [p[0] for p in pts]
+        return min(xs) - m, max(xs) + m, max(abs(p[1]) for p in pts) + m
 
     def waypoints(self, src_xy, dst_xy, piece_type: int, home4: np.ndarray | None) -> list[dict]:
         g = GRASP_DZ[piece_type]
@@ -112,6 +114,7 @@ class Planner:
         """Muestrea el camino en el espacio de articulaciones y avisa si la punta baja de TRANSIT_MIN sobre el tablero
         en un tramo que NO es un descenso al agarre o al soltado. No mueve nada."""
         warn = []
+        bx0, bx1, by = self.board_bounds
         for a, b2 in zip(wp, wp[1:]):
             if a["joints"] is None or b2["joints"] is None:
                 continue
@@ -120,7 +123,7 @@ class Planner:
             for s in np.linspace(0, 1, 40):
                 q = a["joints"] + s * (b2["joints"] - a["joints"])
                 tip = b.fk_tip(np.r_[q, 0.0] + self.kin.off)
-                over_board = 0.19 <= tip[0] <= 0.46 and abs(tip[1]) <= 0.14
+                over_board = bx0 <= tip[0] <= bx1 and abs(tip[1]) <= by
                 if over_board and tip[2] - self.kin.z_contact < zmin:
                     zmin, where = tip[2] - self.kin.z_contact, tip[:2]
             if not descent and where is not None and zmin < self.TRANSIT_MIN:
@@ -153,11 +156,9 @@ class Arm:
     def __init__(self):
         from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
 
-        port = os.environ.get("SO101_FOLLOWER_PORT", "")
-        if not port:
-            raise RuntimeError("Falta SO101_FOLLOWER_PORT.")
+        port = CFG.require_port()
         self.robot = SO101Follower(SO101FollowerConfig(
-            port=port, id=os.environ.get("SO101_FOLLOWER_ID", "so101_follower"), cameras={}, use_degrees=True,
+            port=port, id=CFG.FOLLOWER_ID, cameras={}, use_degrees=True,
             max_relative_target=STEP_DEG, disable_torque_on_disconnect=False))
         self.robot.connect(calibrate=False)
         if not self.robot.is_calibrated:
@@ -232,7 +233,7 @@ class ACTWindow:
         self.device = device or os.environ.get("SO101_VLA_DEVICE", "mps")
         self.policy, self.pre, self.post = load_policy(Path(checkpoint), self.device)
         self.motors = [f"{k}.pos" for k in STATE_KEYS]
-        self.cams = {"front": int(os.environ.get("CHESS_YOLO_CAM", "0")), "gripper": int(os.environ.get("CHESS_WRIST_CAM", "2"))}
+        self.cams = {"front": CFG.YOLO_CAM, "gripper": CFG.WRIST_CAM}
 
     def frames(self) -> dict[str, np.ndarray]:
         from deploy_act_generic import to_act_size
@@ -444,7 +445,7 @@ def cmd_set_home(a) -> int:
     from chess_ik import CAL_FOLLOWER
 
     cal = json.loads(CAL_FOLLOWER.read_text())
-    port = os.environ.get("SO101_FOLLOWER_PORT", "/dev/cu.usbmodem5B610353951")
+    port = CFG.require_port()
     bus = FeetechMotorsBus(port=port, motors={n: Motor(i + 1, "sts3215", MotorNormMode.DEGREES if n != "gripper" else MotorNormMode.RANGE_0_100)
                                               for i, n in enumerate(STATE_KEYS)},
                            calibration={n: MotorCalibration(**cal[n]) for n in STATE_KEYS})

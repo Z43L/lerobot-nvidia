@@ -57,7 +57,11 @@ def load_policy(checkpoint: Path, device: str):
     policy = get_policy_class(cfg.type).from_pretrained(str(checkpoint), config=cfg)
     policy.to(device)
     policy.eval()
-    pre, post = make_pre_post_processors(policy_cfg=policy.config, pretrained_path=str(checkpoint))
+    # Un checkpoint entrenado en CUDA lleva "cuda" fijado en policy_preprocessor.json (device_processor): sin este
+    # override no carga en un Mac. Se fuerza el dispositivo actual en ambos procesadores.
+    override = {"device_processor": {"device": device}}
+    pre, post = make_pre_post_processors(policy_cfg=policy.config, pretrained_path=str(checkpoint),
+                                         preprocessor_overrides=override, postprocessor_overrides=override)
     return policy, pre, post
 
 
@@ -141,7 +145,7 @@ def real_run(checkpoint: Path, goal: np.ndarray, seconds: float, device: str) ->
         id=os.environ.get("SO101_FOLLOWER_ID", "so101_follower"),
         cameras=cams,
         use_degrees=True,
-        max_relative_target=float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "5")),
+        max_relative_target=float(os.environ.get("SO101_MAX_RELATIVE_TARGET", "2")),
     ))
     motors = [k for k in robot.action_features if k.endswith(".pos")]
     problems = check_features(policy, motors)

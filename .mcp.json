@@ -67,15 +67,7 @@
       "env": {
         "SO101_BACKEND": "real",
         "SO101_MAX_RELATIVE_TARGET": "2",
-        "SO101_VLA_DEVICE": "mps",
-        "SO101_FOLLOWER_PORT": "/dev/cu.usbmodem5B910311921",
-        "SO101_LEADER_PORT": "/dev/cu.usbmodem5AB01585131",
-        "SO101_FOLLOWER_ID": "so101_follower",
-        "SO101_LEADER_ID": "so101_leader",
-        "SO101_TOP_CAM": "0",
-        "SO101_WRIST_CAM": "1",
-        "SO101_TABLE_CAM": "-1",
-        "ALLOW_REAL_MOTION": "1"
+        "SO101_VLA_DEVICE": "mps"
       }
     },
     "so101-real-hanoi": {
@@ -92,15 +84,16 @@
         "SO101_HANOI_VLA_BLUE": "",
         "SO101_HANOI_VLA_CYAN": "",
         "SO101_HANOI_VLA_BROWN": "",
-        "SO101_VLA_DEVICE": "mps",
-        "SO101_FOLLOWER_PORT": "/dev/cu.usbmodem5B910311921",
-        "SO101_LEADER_PORT": "/dev/cu.usbmodem5AB01585131",
-        "SO101_FOLLOWER_ID": "so101_follower",
-        "SO101_LEADER_ID": "so101_leader",
-        "SO101_TOP_CAM": "0",
-        "SO101_WRIST_CAM": "1",
-        "SO101_TABLE_CAM": "-1",
-        "ALLOW_REAL_MOTION": "1"
+        "SO101_VLA_DEVICE": "mps"
+      }
+    },
+    "so101-chess": {
+      "command": "./.venv312/bin/python",
+      "args": [
+        "hub/chess_mcp.py"
+      ],
+      "env": {
+        "SO101_VLA_DEVICE": "mps"
       }
     }
   }
