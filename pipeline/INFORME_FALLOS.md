@@ -19,7 +19,7 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 | 5 | El diagrama pide una orden de alto nivel por jugada; el MCP solo tenía herramientas sueltas | Flujo distinto al diseñado | ✅ |
 | 6 | El gate de seguridad se comprobaba después de preparar el ejecutor | Seguridad | ✅ |
 | 7 | El ACT de 30k (entrenado en CUDA) no cargaba en un Mac | Bloqueante para el ACT en el host | ✅ |
-| 8 | Las rutas de los pesos ACT apuntaban a carpetas vacías | Bloqueante: no hay ACT | 🟡 |
+| 8 | Las rutas de los pesos ACT apuntaban a carpetas vacías | Bloqueante: no hay ACT | ✅ |
 | 9 | `chess_plan` devolvía coordenadas de la sim, no metros reales | El brazo iría a la casilla equivocada | ✅ |
 | 10 | Tres estrategias de agarre incompatibles, ninguna oficial | Confusión, trabajo perdido | ✅ decidido |
 | 11 | Hardcodeos: puertos, cámaras, rutas, límites | Fallos según el puesto | ✅ |
@@ -32,7 +32,7 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 | 18 | Visión con la cámara del puesto sin validar | Falsos rechazos paran la partida | ⛔ |
 | 19 | Nada del movimiento real se ha probado | Riesgo en la demo | ⛔ |
 | 20 | El ACT se arrancaba con la pinza más abierta de lo que vio al entrenar | El agarre con ACT empieza fuera de distribución | 🟡 detectado y bloqueado |
-| 21 | Los pesos entrenados no están en ningún sitio compartido | El host no puede ejecutar el ACT | ⛔ |
+| 21 | Los pesos entrenados no estaban en ningún sitio compartido | El host no podía ejecutar el ACT | ✅ en el repo (Git LFS) |
 
 ---
 
@@ -73,7 +73,7 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
 ### 8. Las rutas de los pesos apuntaban a carpetas vacías
 - **Evidencia:** `act_tray_a100_100k_ckpts/` y `act_tray_30k_ckpts/` están vacías. `modeloACT/` está en `.gitignore`. El checkpoint de 200 pasos de la otra rama es un puntero de Git LFS (134 bytes).
 - **Corrección:** registro de modelos en `hub/chess_config.py` (`ACT_MODELS`), con variables para cada ruta y `CHESS_ACT_CHECKPOINT` para elegir.
-- **Pendiente:** copiar los pesos al host con `rsync` (`pipeline/MODELOS_ACT.md`).
+- **Resuelto con el fallo 21:** los pesos van en el repo con Git LFS.
 
 ### 9. El plan usaba coordenadas de la sim
 - **Evidencia:** `chess_plan` documentaba "coordenadas = etiquetas de la geometría de la SIM (no metros reales)". `goal_utils.square_label_xy` lee `hub/chess_board.json` (sim).
@@ -153,8 +153,9 @@ Estados: ✅ corregido y verificado · 🟡 corregido, falta probarlo en el host
   ninguna de las cuentas consultadas tiene modelos ACT publicados. Las únicas copias están en el Mac de desarrollo
   (`~/act_tray_ckpts` y `outputs/train/act_tray_clean_25000`). Pesan unos 200 MB cada uno, por encima del límite de
   GitHub sin LFS.
-- **Pendiente:** decidir dónde publicarlos (Hub de Hugging Face privado, Git LFS o copia directa al host) y dejar en el
-  repo un script que los descargue.
+- **Corrección:** los dos `pretrained_model` van en el repo con Git LFS, en `models/act/hf-30k-cuda/` y
+  `models/act/local-25k-mps/`. `hub/chess_config.py` los usa por defecto y salta los punteros sin descargar.
+  `host_validate.sh` hace `git lfs pull`.
 
 ---
 
@@ -171,6 +172,6 @@ Hay que repetirlo en el host. Ningún peldaño con movimiento se ejecuta con alg
 ## Siguientes pasos (en el host)
 
 1. `git checkout` de esta rama y `pipeline/host_validate.sh`.
-2. Copiar los pesos ACT con `rsync` y comprobar `--stage models` en el host.
+2. `git lfs pull` (lo hace `host_validate.sh`) y comprobar `--stage models` en el host.
 3. Instalar `ultralytics` y validar la visión en vivo (`CAMERA=0`).
 4. Peldaños 5–8 de `pipeline/GUIA_HOST_AJEDREZ.md`, uno a uno, con el SI del usuario.

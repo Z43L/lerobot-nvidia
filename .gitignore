@@ -9,6 +9,7 @@ real/checkpoints/
 sim/datasets/
 sim/checkpoints/
 *.safetensors
+!models/act/**/*.safetensors
 *.parquet
 *.mp4
 

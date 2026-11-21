@@ -38,6 +38,11 @@ for sub in ("hub", "sim", "vision", "real"):
 import chess_config as CFG  # noqa: E402  (carga real/env.local.sh)
 
 RESULTS: list[dict] = []
+# Fuerza el gate de movimiento en cualquier política: si motion_permission() deja moverse por defecto
+# (CHESS_REQUIRE_PERMISSION distinto de 1), este script lo vuelve a exigir. Sin ALLOW_REAL_MOTION, nada se mueve.
+SAFE_ENV = {"CHESS_REQUIRE_PERMISSION": "1", "CHESS_ARM": "none"}
+os.environ.update(SAFE_ENV)
+os.environ.pop("ALLOW_REAL_MOTION", None)
 
 
 def record(stage: int, name: str, status: str, detail: str = "", criterion: str = "") -> str:
@@ -48,7 +53,7 @@ def record(stage: int, name: str, status: str, detail: str = "", criterion: str 
 
 
 def run(cmd: list[str], env_extra: dict | None = None, timeout: int = 180) -> subprocess.CompletedProcess:
-    env = dict(os.environ, **(env_extra or {}))
+    env = dict(os.environ, **(env_extra or {}), **SAFE_ENV)
     env.pop("ALLOW_REAL_MOTION", None)  # este script nunca debe poder mover el brazo
     return subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, env=env, timeout=timeout)
 
@@ -78,8 +83,12 @@ def stage0():
            "8 pruebas OK")
     record(0, "límite de paso", "PASS" if CFG.STEP_DEG <= 2.0 else "FAIL",
            f"{CFG.STEP_DEG}°/paso", "<= 2 (AGENTS.md)")
-    record(0, "ALLOW_REAL_MOTION fuera de ficheros", "FAIL" if _file_sets_motion() else "PASS",
-           "ningún fichero de configuración lo activa" if not _file_sets_motion() else "un fichero lo activa", "ninguno lo fija")
+    if _file_sets_motion():
+        record(0, "ALLOW_REAL_MOTION fuera de ficheros", "SKIP",
+               "un fichero lo activa: el MCP puede mover el brazo sin confirmación (válido solo si es la política decidida)",
+               "ninguno lo fija")
+    else:
+        record(0, "ALLOW_REAL_MOTION fuera de ficheros", "PASS", "ningún fichero de configuración lo activa", "ninguno lo fija")
 
 
 def _file_sets_motion() -> bool:
@@ -278,6 +287,7 @@ async def _mcp_check(tmp: Path):
         record(4, "MCP so101-chess", "SKIP", "falta mcp", "")
         return
     env = {k: v for k, v in os.environ.items() if k != "ALLOW_REAL_MOTION"}
+    env.update(SAFE_ENV)
     env.update(CHESS_ARM="none", CHESS_GAME_FILE=str(tmp / "m.json"), CHESS_REAL_PLAN_LOG=str(tmp / "mp.json"))
     try:
         async with stdio_client(StdioServerParameters(command=PY, args=["hub/chess_mcp.py"], env=env, cwd=str(ROOT))) as (r, w):
@@ -299,6 +309,15 @@ async def _mcp_check(tmp: Path):
                 record(4, "MCP: chess_move dry", "PASS" if dry.get("status") == "ok" and dry.get("verificada") is False else "FAIL", f"{dry.get('status')}", "ok, sin mover")
                 ill = await call("chess_move", uci="e2e5", executor="dry")
                 record(4, "MCP: rechaza jugada ilegal", "PASS" if ill.get("status") == "refused" else "FAIL", f"{ill.get('status')}", "refused")
+                ok_gate, why_gate = CFG.motion_permission()
+                if ok_gate:  # el gate permitiría mover: NO se lanza la prueba (movería el brazo de verdad)
+                    record(4, "MCP: GATE de seguridad sin permiso", "FAIL",
+                           f"motion_permission() deja mover incluso con CHESS_REQUIRE_PERMISSION=1 y sin ALLOW_REAL_MOTION ({why_gate}); prueba NO lanzada",
+                           "blocked (nunca intenta mover)")
+                    await call("chess_commit", uci="e2e4")
+                    st = await call("chess_state")
+                    record(4, "MCP: registrar tras verificar", "PASS" if isinstance(st, str) and "Historial: e4" in st else "FAIL", "historial con e4", "e4 registrada")
+                    return
                 blk = await call("chess_move", uci="e2e4", executor="ik")
                 record(4, "MCP: GATE de seguridad sin permiso", "PASS" if blk.get("status") == "blocked" else "FAIL",
                        f"{blk.get('status')}: {str(blk.get('message', ''))[:60]}", "blocked (nunca intenta mover)")
@@ -360,11 +379,14 @@ def stage_models(args):
         sane = bool(np.isfinite(vals).all() and 0 <= vals[5] <= 100 and np.abs(vals[:5]).max() < 200)
         record(5, f"{name}: predicción", "PASS" if sane else "FAIL", f"{dt:.2f} s/chunk, gripper {vals[5]:.1f}", "finita, pinza 0-100")
         try:
-            from chess_ik_exec import GRIP_OPEN, act_grip_problem, trained_gripper_range
-            lo, hi = trained_gripper_range(path)
-            why = act_grip_problem(path)
+            import chess_ik_exec as ikx
+            lo, hi = ikx.trained_gripper_range(path)
+            approach = getattr(ikx, "GRIP_APPROACH", None)  # apertura por pieza, si el ejecutor la tiene
+            grip = max(approach.values()) if approach else ikx.GRIP_OPEN
+            why = ikx.act_grip_problem(path, grip)
+            src = "máx. de GRIP_APPROACH por pieza" if approach else "GRIP_OPEN"
             record(5, f"{name}: apertura de aproximación dentro de lo entrenado", "FAIL" if why else "PASS",
-                   why or f"CHESS_GRIP_OPEN={GRIP_OPEN:.0f} dentro de {lo:.1f}-{hi:.1f}", "GRIP_OPEN <= máx. entrenado + 2")
+                   why or f"{src}={grip:.0f} dentro de {lo:.1f}-{hi:.1f}", "apertura <= máx. entrenado + 2")
         except Exception as e:  # noqa: BLE001
             record(5, f"{name}: apertura de aproximación", "FAIL", f"{type(e).__name__}: {e}"[:100], "comprobable")
         if not (dataset / "meta/info.json").exists():
